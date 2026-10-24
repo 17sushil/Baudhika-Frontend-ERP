@@ -13,6 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggler } from "@/components/shared/theme-switcher";
 import { cn } from "@/lib/utils";
 import { CopyrightYear } from "@/components/shared/copyright-year";
+import { DomainDebugBanner } from "@/components/shared/domain-debug-banner";
 
 const modules = [
   {
@@ -65,6 +66,7 @@ const bars = [40, 65, 50, 80, 60, 90, 72];
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
+      <DomainDebugBanner />
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
