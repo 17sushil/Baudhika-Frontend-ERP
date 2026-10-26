@@ -8,17 +8,6 @@ import { connection } from "next/server";
 
 type Props = { params: Promise<{ tenant: string }> };
 
-// export async function generateMetadata({ params }: Props): Promise<Metadata> {
-//   const { tenant: slug } = await params;
-//   const t = await getTenant(slug);
-//   if (!t) return {};
-//   return {
-//     title: { default: t.name, template: `%s | ${t.shortName}` },
-//     description: t.description,
-//     icons: t.faviconUrl ? { icon: t.faviconUrl } : undefined,
-//   };
-// }
-
 async function DynamicMarker() {
   await connection();
   return null;

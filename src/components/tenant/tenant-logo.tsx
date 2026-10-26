@@ -10,7 +10,8 @@ export function TenantLogo({ className = "size-9" }: { className?: string }) {
       <span
         className={`flex items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground ${className}`}
       >
-        {tenant.shortName.slice(0, 1)}
+        {/* {tenant.shortName.slice(0, 1)} */}
+         {(tenant.shortName || tenant.name || "?").charAt(0).toUpperCase()}
       </span>
     );
   }

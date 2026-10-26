@@ -24,3 +24,8 @@ export function useTenant() {
   if (!ctx) throw new Error("useTenant must be used inside <TenantProvider>");
   return ctx;
 }
+
+
+export function useOptionalTenant() {
+  return useContext(Ctx);
+}
