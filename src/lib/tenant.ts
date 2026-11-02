@@ -18,15 +18,17 @@ export async function getTenant(slug: string): Promise<Tenant | null> {
   if (!res.ok) throw new Error(`Tenant lookup failed (${res.status})`);
   // return res.json();
   const raw: Tenant = await res.json();
-  const name = raw.name?.trim() || raw.slug;
+  // @ts-ignore
+  const data = raw?.data
+  const name = data.name?.trim() || data.slug;
   return {
-    ...raw,
+    ...data,
     name,
-    shortName: raw.shortName?.trim() || name,
-    logoUrl: raw.logoUrl || null,
-    faviconUrl: raw.faviconUrl || null,
-    description: raw.description || null,
-    language: raw.language || "en",
-    theme: raw.theme ?? null,
+    shortName: data.shortName?.trim() || name,
+    logoUrl: data.logoUrl || null,
+    faviconUrl: data.faviconUrl || null,
+    description: data.description || null,
+    language: data.language || "en",
+    theme: data.theme ?? null,
   };
 }
