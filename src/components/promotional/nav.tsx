@@ -44,13 +44,13 @@ export function PromoNav() {
           </p>
           <div className="hidden items-center gap-5 md:flex">
             <a href="tel:+97714220000" className="flex items-center gap-1.5 transition-colors hover:text-white">
-              <Phone className="size-3.5" /> +977 1 4220000
+              <Phone className="size-3.5" /> +977 9812291777
             </a>
             <a
-              href="mailto:contact@baudhika.edu.np"
+              href="mailto:support@baudhika.com"
               className="flex items-center gap-1.5 transition-colors hover:text-white"
             >
-              <Mail className="size-3.5" /> contact@baudhika.edu.np
+              <Mail className="size-3.5" /> support@baudhika.com
             </a>
             <Link href="/login" className="font-semibold text-white hover:underline">
               Sign in

@@ -49,10 +49,10 @@ export function PromoFooter() {
         <div>
           <h4 className="mb-4 text-[12px] font-bold tracking-[0.14em] text-white">CONTACT</h4>
           <a href="tel:+97714220000" className="mb-2.5 block transition-colors hover:text-white">
-            +977 1 4220000
+            +977 9812291777
           </a>
-          <a href="mailto:contact@baudhika.edu.np" className="mb-2.5 block transition-colors hover:text-white">
-            contact@baudhika.edu.np
+          <a href="mailto:support@baudhika.com" className="mb-2.5 block transition-colors hover:text-white">
+            support@baudhika.com
           </a>
           <p>Kathmandu, Nepal</p>
         </div>

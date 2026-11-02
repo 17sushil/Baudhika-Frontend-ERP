@@ -32,13 +32,13 @@ export function Finale() {
           <Reveal delay={0.14}>
             <div className="mt-8 flex flex-col gap-3.5 text-[15px] font-semibold sm:flex-row sm:gap-10">
               <a href="tel:+97714220000" className="flex items-center gap-2.5 transition-opacity hover:opacity-75">
-                <Phone className="size-[18px]" /> +977 1 4220000
+                <Phone className="size-[18px]" /> +977 9812291777
               </a>
               <a
-                href="mailto:contact@baudhika.edu.np"
+                href="mailto:support@baudhika.com"
                 className="flex items-center gap-2.5 transition-opacity hover:opacity-75"
               >
-                <Mail className="size-[18px]" /> contact@baudhika.edu.np
+                <Mail className="size-[18px]" /> support@baudhika.com
               </a>
             </div>
           </Reveal>
@@ -47,7 +47,7 @@ export function Finale() {
         <Reveal delay={0.12} className="lg:justify-self-end">
           <Magnetic>
             <a
-              href="mailto:contact@baudhika.edu.np"
+              href="mailto:support@baudhika.com"
               className="group relative inline-flex h-[54px] items-center overflow-hidden rounded-[10px] bg-primary-foreground px-10 text-[15.5px] font-bold text-primary transition-transform duration-300 hover:-translate-y-0.5"
             >
               Get started
