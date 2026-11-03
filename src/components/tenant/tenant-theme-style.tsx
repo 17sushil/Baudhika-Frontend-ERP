@@ -6,13 +6,13 @@ export function TenantThemeStyle({ theme }: { theme?: Tenant["theme"] }) {
   if (!theme) return null;
 
   const vars: Record<string, string | undefined> = {
-    "--primary": theme.primary,
-    "--sidebar-primary": theme.primary,
-    "--ring": theme.primary,
-    "--primary-foreground": theme.primaryForeground,
-    "--sidebar-primary-foreground": theme.primaryForeground,
-    "--secondary": theme.secondary,
-    "--secondary-foreground": theme.secondaryForeground,
+    "--primary": theme.primary ?? undefined,
+    "--sidebar-primary": theme.primary ?? undefined,
+    "--ring": theme.primary ?? undefined,
+    "--primary-foreground": theme.primaryForeground ?? undefined,
+    "--sidebar-primary-foreground": theme.primaryForeground ?? undefined,
+    "--secondary": theme.secondary ?? undefined,
+    "--secondary-foreground": theme.secondaryForeground ?? undefined,
   };
 
   // only accept valid hex values, since this string goes into a <style> tag

@@ -1,0 +1,10 @@
+import * as React from "react";
+import { DashboardLayoutShell } from "@/components/dashboard/dashboard-layout-shell";
+
+export default function RootPrivateLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <DashboardLayoutShell>{children}</DashboardLayoutShell>;
+}
