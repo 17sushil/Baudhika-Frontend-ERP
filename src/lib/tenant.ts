@@ -11,24 +11,37 @@ export async function getTenant(slug: string): Promise<Tenant | null> {
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "localhost:3000";
   const host = `${slug}.${rootDomain}`;
   const url = `${process.env.NEXT_PUBLIC_API_URL}/public/tenants/resolve?host=${encodeURIComponent(host)}`;
-  const res = await fetch(url);
-  console.log("[getTenant]", url, res.status);
-  // if (res.status === 404) return null;
-  if (res.status === 404 || res.status === 400) return null;
-  if (!res.ok) throw new Error(`Tenant lookup failed (${res.status})`);
-  // return res.json();
-  const raw: Tenant = await res.json();
-  // @ts-ignore
-  const data = raw?.data
-  const name = data.name?.trim() || data.slug;
-  return {
-    ...data,
-    name,
-    shortName: data.shortName?.trim() || name,
-    logoUrl: data.logoUrl || null,
-    faviconUrl: data.faviconUrl || null,
-    description: data.description || null,
-    language: data.language || "en",
-    theme: data.theme ?? null,
-  };
+  try {
+    const res = await fetch(url);
+    console.log("[getTenant]", url, res.status);
+    if (res.status === 404 || res.status === 400) return null;
+    if (!res.ok) throw new Error(`Tenant lookup failed (${res.status})`);
+    const raw: any = await res.json();
+    const data = raw?.data;
+    if (!data) return null;
+    const name = data.name?.trim() || data.slug;
+    return {
+      ...data,
+      name,
+      shortName: data.shortName?.trim() || name,
+      logoUrl: data.logoUrl || null,
+      faviconUrl: data.faviconUrl || null,
+      description: data.description || null,
+      language: data.language || "en",
+      theme: data.theme ?? null,
+    };
+  } catch (err) {
+    console.warn(`[getTenant] Backend offline for ${slug}, using local fallback:`, err);
+    return {
+      slug,
+      name: slug === "demo2" ? "Demo Secondary School" : "Baudhika Academy",
+      shortName: slug === "demo2" ? "DSS" : "Baudhika",
+      status: "active",
+      description: "School ERP Back-office Administration Portal",
+      logoUrl: null,
+      faviconUrl: null,
+      language: "en",
+      theme: null,
+    };
+  }
 }
