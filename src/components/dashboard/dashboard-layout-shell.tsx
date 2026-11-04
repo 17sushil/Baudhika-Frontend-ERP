@@ -32,7 +32,7 @@ export function DashboardLayoutShell({
     <DashboardShellContext.Provider
       value={{ selectedBranchId, setSelectedBranchId }}
     >
-      <div className="min-h-screen bg-[#F8FAFD] text-slate-900 font-sans antialiased">
+      <div className="min-h-screen bg-[#F5F8FC] text-slate-900 font-sans antialiased">
         {/* Navy Collapsible Sidebar */}
         <AdminSidebar
           collapsed={collapsed}

@@ -24,7 +24,7 @@ import {
   SECTIONS_LIST,
 } from "./student-mock-data";
 import type { Student, StudentFilters, StudentStatus } from "./student-types";
-import { StudentProfileDrawer } from "./student-profile-drawer";
+import { StudentProfilePageView } from "./student-profile-page-view";
 import { AddStudentModal } from "./add-student-modal";
 import { StudentIdCardModal } from "./student-id-card-modal";
 import { toast } from "sonner";
@@ -99,6 +99,15 @@ export function StudentTableView() {
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
+
+  if (activeProfileStudent) {
+    return (
+      <StudentProfilePageView
+        student={activeProfileStudent}
+        onBack={() => setActiveProfileStudent(null)}
+      />
+    );
+  }
 
   // Bulk selection handlers
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -607,16 +616,6 @@ export function StudentTableView() {
           </div>
         </div>
       </div>
-
-      {/* Student Profile Single Source of Truth Drawer */}
-      <StudentProfileDrawer
-        student={activeProfileStudent}
-        onClose={() => setActiveProfileStudent(null)}
-        onPrintIdCard={(s) => {
-          setActiveProfileStudent(null);
-          setActiveIdCardStudent(s);
-        }}
-      />
 
       {/* Add New Student Multi-Step Modal */}
       <AddStudentModal
