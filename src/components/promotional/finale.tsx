@@ -1,61 +1,98 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Mail, Phone } from "lucide-react";
-import { EASE, Magnetic, Reveal } from "@/components/promotional/motion";
-import { useReducedMotion } from "@/components/promotional/use-reduced-motion";
+import { Clock, Mail, Phone } from "lucide-react";
+import { PromoButton } from "@/components/promotional/button";
+import { Magnetic, Reveal } from "@/components/promotional/motion";
+
+const CONTACTS = [
+  { icon: Phone, label: "Call us", value: "+977 9812291777", href: "tel:+9779812291777" },
+  { icon: Mail, label: "Email", value: "support@baudhika.com", href: "mailto:support@baudhika.com" },
+  { icon: Clock, label: "Response time", value: "Under four hours" },
+];
 
 export function Finale() {
-  const reduce = useReducedMotion();
-
   return (
-    <motion.section
-      id="contact"
-      initial={reduce ? false : { clipPath: "inset(0 0 100% 0)" }}
-      whileInView={{ clipPath: "inset(0 0 0% 0)" }}
-      viewport={{ once: true, margin: "0px 0px -12% 0px" }}
-      transition={{ duration: 1.1, ease: EASE }}
-      className="scroll-mt-28 bg-primary py-20 text-primary-foreground lg:py-24"
-    >
-      <div className="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
-        <div>
-          <Reveal>
-            <h2 className="text-[clamp(2rem,3.6vw,2.9rem)] font-extrabold tracking-[-0.02em]">
-              Ready when you are.
-            </h2>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <p className="mt-4 max-w-[48ch] text-[16px] leading-[1.65] opacity-80">
-              One call. We migrate your records, train your staff, and stay until the system runs itself.
-            </p>
-          </Reveal>
-          <Reveal delay={0.14}>
-            <div className="mt-8 flex flex-col gap-3.5 text-[15px] font-semibold sm:flex-row sm:gap-10">
-              <a href="tel:+97714220000" className="flex items-center gap-2.5 transition-opacity hover:opacity-75">
-                <Phone className="size-[18px]" /> +977 9812291777
-              </a>
-              <a
-                href="mailto:support@baudhika.com"
-                className="flex items-center gap-2.5 transition-opacity hover:opacity-75"
-              >
-                <Mail className="size-[18px]" /> support@baudhika.com
-              </a>
-            </div>
-          </Reveal>
-        </div>
+    <section id="contact" className="scroll-mt-28 py-24 lg:py-28">
+      <div className="mx-auto w-full max-w-[1280px] px-6 lg:px-8">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#165c95] to-[#0f3f66] px-8 py-14 text-white sm:px-14 sm:py-16">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-[0.12]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+                backgroundSize: "44px 44px",
+                maskImage: "radial-gradient(ellipse 80% 90% at 100% 0%, #000, transparent 70%)",
+                WebkitMaskImage: "radial-gradient(ellipse 80% 90% at 100% 0%, #000, transparent 70%)",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-24 -top-24 size-[380px] rounded-full bg-teal/50 blur-3xl"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-32 left-1/4 size-[300px] rounded-full bg-highlight/25 blur-3xl"
+            />
 
-        <Reveal delay={0.12} className="lg:justify-self-end">
-          <Magnetic>
-            <a
-              href="mailto:support@baudhika.com"
-              className="group relative inline-flex h-[54px] items-center overflow-hidden rounded-[10px] bg-primary-foreground px-10 text-[15.5px] font-bold text-primary transition-transform duration-300 hover:-translate-y-0.5"
-            >
-              Get started
-              <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-primary/15 transition-[left] duration-700 group-hover:left-[130%]" />
-            </a>
-          </Magnetic>
+            <div className="relative grid items-center gap-12 lg:grid-cols-[1.2fr_0.8fr]">
+              <div>
+                <h2 className="text-balance text-[clamp(2.2rem,4vw,3.25rem)] font-extrabold leading-[1.05] tracking-[-0.03em]">
+                  Ready when you are.
+                </h2>
+                <p className="mt-5 max-w-[48ch] text-[17px] leading-[1.65] opacity-80">
+                  One call. We migrate your records, train your staff, and stay until the system runs itself.
+                </p>
+                <div className="mt-9 flex flex-wrap gap-3">
+                  <Magnetic>
+                    <PromoButton href="mailto:support@baudhika.com" variant="highlight" arrow shine>
+                      Get started
+                    </PromoButton>
+                  </Magnetic>
+                  <PromoButton href="/login" variant="ghostLight">
+                    Sign in
+                  </PromoButton>
+                </div>
+              </div>
+
+              <ul className="grid gap-3">
+                {CONTACTS.map(({ icon: Icon, label, value, href }) => {
+                  const inner = (
+                    <>
+                      <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/12 ring-1 ring-white/15">
+                        <Icon className="size-5" />
+                      </span>
+                      <span>
+                        <span className="block text-[12px] font-medium uppercase tracking-[0.12em] opacity-65">
+                          {label}
+                        </span>
+                        <span className="block text-[16px] font-semibold">{value}</span>
+                      </span>
+                    </>
+                  );
+                  const cardClass =
+                    "flex items-center gap-4 rounded-2xl border border-white/15 bg-white/[0.07] p-4 backdrop-blur";
+                  return (
+                    <li key={label}>
+                      {href ? (
+                        <a
+                          href={href}
+                          className={`${cardClass} transition-colors hover:bg-white/[0.14] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white`}
+                        >
+                          {inner}
+                        </a>
+                      ) : (
+                        <div className={cardClass}>{inner}</div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
         </Reveal>
       </div>
-    </motion.section>
+    </section>
   );
 }
