@@ -55,8 +55,8 @@ export function DashboardLayoutShell({
             onSelectBranch={setSelectedBranchId}
           />
 
-          {/* Page Viewport */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          {/* Page Viewport: Full-width layout matching the reference mockup */}
+          <main className="flex-1 px-6 sm:px-8 lg:px-10 py-8 w-full">
             {children}
           </main>
         </div>
