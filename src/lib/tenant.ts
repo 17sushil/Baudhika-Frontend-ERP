@@ -14,10 +14,25 @@ export async function getTenant(slug: string): Promise<Tenant | null> {
   try {
     const res = await fetch(url);
     console.log("[getTenant]", url, res.status);
-    if (res.status === 404 || res.status === 400) return null;
+    if (res.status === 404 || res.status === 400) {
+      if (process.env.NODE_ENV !== "production" && slug.startsWith("demo")) {
+        return {
+          slug,
+          name: slug === "demo2" ? "Demo Secondary School" : "Sunrise Public School",
+          shortName: slug === "demo2" ? "DSS" : "Sunrise",
+          status: "active",
+          description: "School ERP Back-office Administration Portal",
+          logoUrl: null,
+          faviconUrl: null,
+          language: "en",
+          theme: null,
+        };
+      }
+      return null;
+    }
     if (!res.ok) throw new Error(`Tenant lookup failed (${res.status})`);
     const raw: any = await res.json();
-    const data = raw?.data;
+    const data = raw?.data ?? raw;
     if (!data) return null;
     const name = data.name?.trim() || data.slug;
     return {
