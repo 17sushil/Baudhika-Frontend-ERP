@@ -134,3 +134,69 @@ export type SessionGranted = {
   slug?: string | null;
   mustChangePassword?: boolean;
 };
+
+// --- users module ----------------------------------------------------------
+
+export type UserStatus = "active" | "suspended" | "disabled";
+
+/** One role granted to a user. scopeType "campus" limits it to one branch. */
+export type UserRoleAssignment = {
+  assignmentId: string;
+  code: string;
+  name: string;
+  scopeType: "institution" | "campus" | "department" | string;
+  scopeId: string | null;
+  validFrom: string | null;
+  validTo: string | null;
+};
+
+/** A login account. The person behind it may not exist yet (or ever). */
+export type User = {
+  id: string;
+  username: string | null;
+  email: string | null;
+  phone: string | null;
+  status: UserStatus;
+  mustChangePassword: boolean;
+  mfaEnabled: boolean;
+  locale: string;
+  lockedUntil: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+  roles: UserRoleAssignment[];
+};
+
+/**
+ * Every GET collection in this API pages the same way:
+ * ?page=&limit= (max 100) plus per-endpoint filters, returning this shape.
+ */
+export type Page<T> = { items: T[]; total: number; page: number; limit: number };
+
+export type UserListParams = {
+  page?: number;
+  limit?: number;
+  /** Matches username, email or phone (contains, case-insensitive). */
+  search?: string;
+  status?: UserStatus;
+};
+
+export type CreateUserInput = {
+  username?: string;
+  email?: string;
+  phone?: string;
+  password: string;
+  mustChangePassword?: boolean;
+  mfaEnabled?: boolean;
+  /** Role codes, institution scope. Needs role.assign on top of user.create. */
+  roles?: string[];
+  locale?: string;
+};
+
+export type GrantRoleInput = {
+  /** Role CODE, e.g. "teacher". */
+  role: string;
+  scopeType?: "institution" | "campus" | "department";
+  scopeId?: string | null;
+  validFrom?: string;
+  validTo?: string;
+};

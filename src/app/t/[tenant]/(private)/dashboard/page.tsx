@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { useCurrentUser } from "@/store/session-store";
+import { useCurrentUser, useHasPermission } from "@/store/session-store";
+import { schoolPath } from "@/lib/tenant-slug";
 import { useTenant } from "@/providers/tenant-provider";
 
 export default function DashboardPage() {
   const user = useCurrentUser();
   const { tenant } = useTenant();
   const roles = user?.roles.map((r) => r.code).join(", ") ?? "";
+  const canReadUsers = useHasPermission("user.read");
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -21,7 +24,17 @@ export default function DashboardPage() {
           <LogoutButton />
         </div>
       </header>
-      <div className="p-8">School dashboard</div>
+      <div className="grid gap-3 p-8">
+        <p>School dashboard</p>
+        {canReadUsers && (
+          <Link
+            href={schoolPath(tenant.slug, "/users")}
+            className="w-fit rounded-xl border px-4 py-2 text-[13px] font-medium transition-colors hover:bg-muted"
+          >
+            Manage users
+          </Link>
+        )}
+      </div>
     </main>
   );
 }

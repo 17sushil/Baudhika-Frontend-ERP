@@ -18,6 +18,10 @@ export async function post<T>(url: string, body?: unknown, config?: AxiosRequest
   return (await http.post<T>(url, body, config)).data;
 }
 
+export async function patch<T>(url: string, body?: unknown, config?: AxiosRequestConfig): Promise<T> {
+  return (await http.patch<T>(url, body, config)).data;
+}
+
 export async function put<T>(url: string, body?: unknown, config?: AxiosRequestConfig): Promise<T> {
   return (await http.put<T>(url, body, config)).data;
 }

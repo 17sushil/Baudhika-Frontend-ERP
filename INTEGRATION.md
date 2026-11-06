@@ -249,3 +249,20 @@ PASSWORD_POLICY_RE), wire it exactly like the school handler:
 new route `src/app/api/auth/platform/change-password/route.ts`, client fn
 `platformChangePassword()` in `src/lib/api/auth.ts`, and swap the
 `<PasswordChangeRequired />` branch in `require-auth.tsx` for a redirect.
+
+## 13. Users module (first data module on top of auth)
+
+| Endpoint | Client fn (`src/lib/api/school.ts`) | UI |
+|---|---|---|
+| `GET /users` (page/limit/search/status) | `listUsers` | `components/users/users-table.tsx` |
+| `GET /users/{id}` | `getUser` | (available; no screen yet) |
+| `POST /users` 201 | `createUser` | `components/users/create-user-form.tsx` |
+| `PATCH /users/{id}/status` | `setUserStatus` | row action, `user.update` |
+| `POST /users/{id}/reset-password` | `resetUserPassword` | Manage panel, `user.update` |
+| `POST /users/{id}/roles` (body field `role`) | `assignUserRole` | Manage panel, `role.assign` |
+| `DELETE /users/{id}/roles/{assignmentId}` | `removeUserRole` | role chip ×, `role.assign` |
+
+Route: `/t/<slug>/users`, guarded by the `(private)` layout. Permission codes gate
+the controls client-side; the server enforces them regardless. List envelope is
+`{ items, total, page, limit }` - the `Page<T>` type in `types.ts` models it for
+every future module. `patch` verb helper added to `api/client.ts`.
