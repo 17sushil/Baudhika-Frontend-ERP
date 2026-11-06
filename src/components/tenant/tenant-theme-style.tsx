@@ -5,7 +5,9 @@ const HEX = /^#[0-9a-f]{3,8}$/i;
 export function TenantThemeStyle({ theme }: { theme?: Tenant["theme"] }) {
   if (!theme) return null;
 
-  const vars: Record<string, string | undefined> = {
+  // Tenant["theme"] fields are `string | null | undefined`; the filter below
+  // discards the nulls before anything reaches the <style> tag.
+  const vars: Record<string, string | null | undefined> = {
     "--primary": theme.primary,
     "--sidebar-primary": theme.primary,
     "--ring": theme.primary,
