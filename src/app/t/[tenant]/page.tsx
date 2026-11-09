@@ -1,19 +1,23 @@
-"use client";
+import { TenantNavbar } from "@/components/tenant-pr-page/Tenant-navbar";
+import { Hero } from "@/components/tenant-pr-page/Hero";
+import { SchoolPrograms } from "@/components/tenant-pr-page/School-programs";
+import { CampusFacilities } from "@/components/tenant-pr-page/Campus-facilities";
+import { KeyDates } from "@/components/tenant-pr-page/Key-dates";
+import { AdmissionsInquiry } from "@/components/tenant-pr-page/Admissions-inquiry";
+import { TenantFooter } from "@/components/tenant-pr-page/Tenant-footer";
 
-import { useTenant } from "@/providers/tenant-provider";
-import { TenantLogo } from "@/components/tenant/tenant-logo";
-import { Button } from "@/components/ui/button";
-
-export default function TenantHome() {
-  const { tenant } = useTenant();
-
+export default function TenantHomePage() {
   return (
-    <main className="flex flex-col items-start gap-4 p-8">
-      <TenantLogo className="size-16" />
-      <h1 className="text-2xl font-semibold">{tenant.name}</h1>
-      <p className="text-muted-foreground">{tenant.description}</p>
-      <Button>Primary button</Button>
-      <Button variant="secondary">Secondary button</Button>
-    </main>
+    <div className="flex min-h-screen flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-foreground">
+      <TenantNavbar />
+      <main className="flex-1">
+        <Hero />
+        <SchoolPrograms />
+        <CampusFacilities />
+        <KeyDates />
+        <AdmissionsInquiry />
+      </main>
+      <TenantFooter />
+    </div>
   );
 }

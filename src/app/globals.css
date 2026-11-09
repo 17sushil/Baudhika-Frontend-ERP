@@ -39,6 +39,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-navy: #12294D;
+  --color-canvas: #F8FAFD;
+  --color-surface: #FFFFFF;
+  --color-border-subtle: #DDE5F0;
   --color-tertiary: var(--tertiary);
   --color-teal: var(--teal);
   --color-highlight: var(--highlight);

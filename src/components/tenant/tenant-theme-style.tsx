@@ -5,16 +5,14 @@ const HEX = /^#[0-9a-f]{3,8}$/i;
 export function TenantThemeStyle({ theme }: { theme?: Tenant["theme"] }) {
   if (!theme) return null;
 
-  // Tenant["theme"] fields are `string | null | undefined`; the filter below
-  // discards the nulls before anything reaches the <style> tag.
-  const vars: Record<string, string | null | undefined> = {
-    "--primary": theme.primary,
-    "--sidebar-primary": theme.primary,
-    "--ring": theme.primary,
-    "--primary-foreground": theme.primaryForeground,
-    "--sidebar-primary-foreground": theme.primaryForeground,
-    "--secondary": theme.secondary,
-    "--secondary-foreground": theme.secondaryForeground,
+  const vars: Record<string, string | undefined> = {
+    "--primary": theme.primary ?? undefined,
+    "--sidebar-primary": theme.primary ?? undefined,
+    "--ring": theme.primary ?? undefined,
+    "--primary-foreground": theme.primaryForeground ?? undefined,
+    "--sidebar-primary-foreground": theme.primaryForeground ?? undefined,
+    "--secondary": theme.secondary ?? undefined,
+    "--secondary-foreground": theme.secondaryForeground ?? undefined,
   };
 
   // only accept valid hex values, since this string goes into a <style> tag
