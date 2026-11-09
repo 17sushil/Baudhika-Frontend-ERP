@@ -1,16 +1,23 @@
 "use client";
 
-import * as React from "react";
-import { DashboardContent } from "@/components/dashboard/dashboard-content";
-import { useDashboardShell } from "@/components/dashboard/dashboard-layout-shell";
+import { LogoutButton } from "@/components/auth/logout-button";
+import { useCurrentUser } from "@/store/session-store";
 
-export default function RootDashboardPage() {
-  const { selectedBranchId, setSelectedBranchId } = useDashboardShell();
+export default function DashboardPage() {
+  const user = useCurrentUser();
 
   return (
-    <DashboardContent
-      selectedBranchId={selectedBranchId}
-      onSelectBranch={setSelectedBranchId}
-    />
+    <main className="flex min-h-screen flex-col">
+      <header className="flex items-center justify-between border-b px-8 py-4">
+        <p className="text-sm font-medium">Baudhika ERP · platform</p>
+        <div className="flex items-center gap-3">
+          <span className="text-[12.5px] text-muted-foreground">
+            {user?.email}
+          </span>
+          <LogoutButton />
+        </div>
+      </header>
+      <div className="p-8">Platform dashboard</div>
+    </main>
   );
 }

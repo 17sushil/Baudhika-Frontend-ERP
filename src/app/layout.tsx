@@ -4,6 +4,7 @@ import QueryProvider from "@/providers/query-provider";
 import "./globals.css";
 import ThemeProvider from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { SessionBoot } from "@/components/auth/session-boot";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
+          <SessionBoot />
           <Toaster richColors position="top-right" />
           <QueryProvider>{children}</QueryProvider>
         </ThemeProvider>

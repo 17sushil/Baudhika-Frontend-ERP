@@ -1,10 +1,9 @@
-import * as React from "react";
-import { DashboardLayoutShell } from "@/components/dashboard/dashboard-layout-shell";
+import { RequireAuth } from "@/components/auth/require-auth";
 
-export default function RootPrivateLayout({
+export default function PrivateLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardLayoutShell>{children}</DashboardLayoutShell>;
+  return <RequireAuth plane="platform">{children}</RequireAuth>;
 }

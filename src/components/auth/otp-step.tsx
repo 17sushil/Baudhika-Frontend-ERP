@@ -1,54 +1,76 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, LoaderCircle, RotateCcw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, LoaderCircle, MailPlus, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OtpInput } from "@/components/auth/otp-input";
 import { Button } from "@/components/ui/button";
-import { OTP_LENGTH, OTP_TTL_SECONDS, requestOtp, verifyOtp } from "@/lib/auth";
+import { OTP_LENGTH, OTP_TTL_SECONDS } from "@/lib/auth";
+import {
+  platformLogin,
+  platformVerifyOtp,
+  schoolLogin,
+  schoolVerifyOtp,
+} from "@/lib/api/auth";
+import { authErrorMessage } from "@/lib/api/errors";
+import { completeSignIn } from "@/lib/sign-in";
 import { otpSchema, type OtpValues } from "@/lib/schemas/auth";
 import { formatClock, useCountdown } from "@/hooks/use-countdown";
 import { useAuthFlow } from "@/store/auth-flow-store";
-import { toast } from "sonner";
+import { usePendingCredentials } from "@/store/pending-credentials-store";
 import { useOptionalTenant } from "@/providers/tenant-provider";
+import { toast } from "sonner";
 
 type Status = "idle" | "verifying" | "error" | "success";
 
 const RING = 94.2;
 const EMPTY_CODE = Array.from({ length: OTP_LENGTH }, () => "");
+const RESEND_COOLDOWN_SECONDS = 30;
+const NO_LONGER_NEEDS_OTP = "This account no longer needs a code. Go back and sign in.";
 
-// export function OtpStep() {
-export function OtpStep({
-  redirectTo = "/dashboard",
-}: {
-  redirectTo?: string;
-}) {
+/**
+ * Step 2 of login: verify the emailed 6-digit code.
+ *
+ * The backend has no resend endpoint on either plane, so "Send a new code"
+ * signs in AGAIN server-side - the only way to mint a fresh challenge and mail
+ * a fresh code. The password for that lives in the memory-only pending
+ * credentials store: a reload drops it, and the button then says go Back.
+ * A 30 s cooldown keeps resend from burning the 10/min login rate limit.
+ *
+ * A challenge allows 5 attempts and lives 5 minutes. On failure we clear the
+ * boxes so a mistyped code cannot be re-submitted by pressing Enter.
+ */
+export function OtpStep() {
   const router = useRouter();
-  // const { slug } = useTenant();
   const slug = useOptionalTenant()?.slug ?? null;
 
-  const email = useAuthFlow((s) => s.email);
+  const identifier = useAuthFlow((s) => s.identifier);
+  const challengeId = useAuthFlow((s) => s.challengeId);
+  const destination = useAuthFlow((s) => s.destination);
   const expiresAt = useAuthFlow((s) => s.expiresAt);
-  const resendAt = useAuthFlow((s) => s.resendAt);
-  const refreshTimers = useAuthFlow((s) => s.refreshTimers);
   const backToCredentials = useAuthFlow((s) => s.backToCredentials);
   const clearFlow = useAuthFlow((s) => s.clearFlow);
 
   const expiresIn = useCountdown(expiresAt);
-  const resendIn = useCountdown(resendAt);
-  const [resending, setResending] = useState(false);
-  const succeeded = useRef(false);
+  // State, not a ref: Next 16's react-hooks/refs rule rejects reading a ref
+  // inside a callback that is created during render.
+  const [done, setDone] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const canResend = usePendingCredentials((s) => s.password !== null);
+  const startOtp = useAuthFlow((s) => s.startOtp);
 
   const {
     control,
     handleSubmit,
     setError,
+    clearErrors,
     setValue,
     reset,
-    formState: { errors, isSubmitting, isSubmitSuccessful, submitCount },
+    formState: { errors, isSubmitting, submitCount },
   } = useForm<OtpValues>({
     resolver: zodResolver(otpSchema),
     defaultValues: { code: EMPTY_CODE },
@@ -56,54 +78,113 @@ export function OtpStep({
 
   const complete = useWatch({ control, name: "code" }).every(Boolean);
 
-  const onSubmit = handleSubmit(async ({ code }) => {
-    if (succeeded.current) return;
-    const result = await verifyOtp(email, code.join(""), slug);
-    if (!result.ok) {
-      setError("root.server", { message: result.message });
-      setValue("code", EMPTY_CODE);
-      return;
-    }
-    succeeded.current = true;
-    // toast.success("Redirecting to dashboard");
-    toast.success("Welcome back!", {
-      description: "Redirecting you to the dashboard…",
-    });
-    useAuthFlow.persist.clearStorage();
-  });
-
-  // redirect after success; the timeout is cleaned up if the component unmounts
+  // Landed here without a challenge (deep link, or the session storage was
+  // cleared) - there is nothing to verify, so go back.
   useEffect(() => {
-    if (!isSubmitSuccessful) return;
-    // const id = window.setTimeout(() => router.replace("/dashboard"), 550);
-    const id = window.setTimeout(() => router.replace(redirectTo), 550);
-    return () => window.clearTimeout(id);
-    // }, [isSubmitSuccessful, router]);
-  }, [isSubmitSuccessful, router, redirectTo]);
+    if (!challengeId) backToCredentials();
+  }, [challengeId, backToCredentials]);
 
-  // clear the saved flow only once we've actually left this step, so there's no flash
-  // useEffect(
-  //   () => () => {
-  //     if (succeeded.current) clearFlow();
-  //   },
-  //   [clearFlow],
-  // );
+  // The code expired while they were typing.
+  useEffect(() => {
+    if (expiresAt !== null && expiresIn === 0 && !done) {
+      setError("root.server", {
+        message: "That code has expired. Go back and sign in again for a new one.",
+      });
+    }
+  }, [expiresAt, expiresIn, done, setError]);
 
-  async function resend() {
-    if (resendIn > 0 || resending || isSubmitting) return;
-    setResending(true);
+  // Client-side cooldown so resend cannot burn the backend's 10/min limit.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => setCooldown((c) => c - 1), 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
+
+  /** "Resend" = a fresh login, because the backend has no resend endpoint. */
+  async function resendCode() {
+    const { identifier: who, password } = usePendingCredentials.getState();
+    if (!who || !password || cooldown > 0 || sending || done) return;
+
+    setSending(true);
     try {
-      await requestOtp(email);
-      refreshTimers();
+      if (slug) {
+        const outcome = await schoolLogin(slug, who, password);
+        if (outcome.status !== "otp_required") throw new Error(NO_LONGER_NEEDS_OTP);
+        startOtp({
+          identifier: who,
+          challengeId: outcome.challengeId,
+          destination: outcome.destination,
+          ttlSeconds: outcome.expiresInSeconds,
+        });
+      } else {
+        const challenge = await platformLogin(who, password);
+        startOtp({
+          identifier: who,
+          challengeId: challenge.challengeId,
+          ttlSeconds: challenge.expiresInSeconds,
+        });
+      }
       reset({ code: EMPTY_CODE });
+      clearErrors("root");
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+      toast.success("A new code is on its way");
+    } catch (e) {
+      const message =
+        e instanceof Error && e.message === NO_LONGER_NEEDS_OTP
+          ? e.message
+          : authErrorMessage(e);
+      setError("root.server", { message });
     } finally {
-      setResending(false);
+      setSending(false);
     }
   }
 
+  function handleBack() {
+    usePendingCredentials.getState().clearPending();
+    backToCredentials();
+  }
+
+  const onSubmit = handleSubmit(async ({ code }) => {
+    if (done || !challengeId) return;
+
+    try {
+      const granted = slug
+        ? await schoolVerifyOtp(slug, challengeId, code.join(""))
+        : await platformVerifyOtp(challengeId, code.join(""));
+
+      setDone(true);
+
+      const destinationPath = await completeSignIn({
+        plane: granted.plane,
+        slug: granted.slug ?? slug,
+        identifier,
+        mustChangePassword: granted.mustChangePassword,
+      });
+
+      clearFlow();
+      usePendingCredentials.getState().clearPending();
+      toast.success(
+        granted.mustChangePassword
+          ? "You need a new password"
+          : "Welcome back!",
+        {
+          description: granted.mustChangePassword
+            ? "Your administrator asked you to change it before continuing."
+            : "Taking you to your dashboard…",
+        },
+      );
+      router.replace(destinationPath);
+    } catch (e) {
+      // 401 = wrong, expired, already used, or 5 attempts exhausted.
+      setValue("code", EMPTY_CODE);
+      reset({ code: EMPTY_CODE });
+      setError("root.server", { message: authErrorMessage(e) });
+    }
+  });
+
   const status: Status = isSubmitting
     ? "verifying"
-    : isSubmitSuccessful
+    : done
       ? "success"
       : errors.root?.server
         ? "error"
@@ -111,18 +192,22 @@ export function OtpStep({
 
   const message = isSubmitting
     ? "Verifying your code…"
-    : isSubmitSuccessful
+    : done
       ? "Verified. Taking you in…"
       : (errors.root?.server?.message ?? "");
 
+  const expired = expiresAt !== null && expiresIn === 0;
   const drain = expiresIn / OTP_TTL_SECONDS;
+  // The platform plane does not return a masked destination, so fall back to
+  // the identifier they typed.
+  const sentTo = destination ?? identifier;
 
   return (
     <form onSubmit={onSubmit} noValidate>
       <Button
         type="button"
         variant={"ghost"}
-        onClick={backToCredentials}
+        onClick={handleBack}
         className="-ml-1 mb-3 inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-[12.5px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" />
@@ -134,7 +219,7 @@ export function OtpStep({
       </h2>
       <p className="mt-1 text-[13px] text-muted-foreground">
         We sent a 6-digit code to{" "}
-        <span className="font-medium text-foreground">{email}</span>
+        <span className="font-medium text-foreground">{sentTo}</span>
       </p>
 
       <div className="mt-4 flex items-center gap-3">
@@ -157,10 +242,7 @@ export function OtpStep({
               strokeLinecap="round"
               strokeDasharray={RING}
               strokeDashoffset={RING * (1 - drain)}
-              className={cn(
-                "stroke-teal",
-                expiresIn === 0 && "stroke-destructive",
-              )}
+              className={cn("stroke-teal", expired && "stroke-destructive")}
               style={{ transition: "stroke-dashoffset 1s linear" }}
             />
           </svg>
@@ -168,14 +250,12 @@ export function OtpStep({
         </span>
         <span>
           <strong className="block text-[13px] font-semibold">
-            {expiresIn === 0
-              ? "Code expired"
-              : `Code expires in ${formatClock(expiresIn)}`}
+            {expired ? "Code expired" : `Code expires in ${formatClock(expiresIn)}`}
           </strong>
           <span className="block text-[11.5px] text-muted-foreground">
-            {resendIn === 0
-              ? "Didn't get it? Request a new one below"
-              : `Resend available in ${formatClock(resendIn)}`}
+            {expired
+              ? "Go back and sign in again for a new code"
+              : `${OTP_LENGTH} digits, 5 attempts`}
           </span>
         </span>
       </div>
@@ -211,22 +291,32 @@ export function OtpStep({
         </p>
       </div>
 
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-3 flex min-h-8 items-center justify-between gap-2">
         <Button
           type="button"
-          variant={"ghost"}
-          onClick={resend}
-          disabled={resendIn > 0 || resending}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-primary hover:text-primary underline-offset-4 transition-opacity hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline disabled:opacity-70"
+          variant="ghost"
+          size="sm"
+          onClick={() => void resendCode()}
+          disabled={!canResend || cooldown > 0 || sending || done || expired}
+          className="gap-1.5 px-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="size-3" />
-          Resend code
+          <MailPlus className="size-3.5" />
+          {sending
+            ? "Sending…"
+            : cooldown > 0
+              ? `Send a new code in ${cooldown}s`
+              : "Send a new code"}
         </Button>
+        {!canResend && (
+          <span className="text-[12px] text-muted-foreground">
+            Page reloaded? Go back and sign in again for a new code.
+          </span>
+        )}
       </div>
 
       <Button
         type="submit"
-        disabled={isSubmitting || isSubmitSuccessful || !complete}
+        disabled={isSubmitting || done || expired || !complete}
         className="mt-4 h-11 w-full gap-2 rounded-xl text-sm font-medium"
       >
         {status === "verifying" ? (

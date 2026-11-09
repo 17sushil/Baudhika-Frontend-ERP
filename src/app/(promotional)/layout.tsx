@@ -1,5 +1,6 @@
+import { ChatWidget } from "@/components/promotional/chat-widget";
 import { PromoNav } from "@/components/promotional/nav";
-import { ScrollProgress } from "@/components/promotional/scroll-progress";
+import { ScrollProgress } from "@/components/shared/scroll-progress";
 import { PromoStyles } from "@/components/promotional/styles";
 
 export default function PromotionalLayout({
@@ -13,6 +14,7 @@ export default function PromotionalLayout({
       <ScrollProgress />
       <PromoNav />
       {children}
+      <ChatWidget />
     </div>
   );
 }

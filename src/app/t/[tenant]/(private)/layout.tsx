@@ -1,4 +1,5 @@
 import * as React from "react";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { DashboardLayoutShell } from "@/components/dashboard/dashboard-layout-shell";
 
 export default function TenantPrivateLayout({
@@ -6,5 +7,9 @@ export default function TenantPrivateLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardLayoutShell>{children}</DashboardLayoutShell>;
+  return (
+    <RequireAuth plane="school">
+      <DashboardLayoutShell>{children}</DashboardLayoutShell>
+    </RequireAuth>
+  );
 }
