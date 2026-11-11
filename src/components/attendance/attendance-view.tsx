@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -39,13 +40,24 @@ import { MonthlyAttendanceMatrix } from "./monthly-attendance-matrix";
 import { StaffAttendanceTab } from "./staff-attendance-tab";
 import { LeaveManagementTab } from "./leave-management-tab";
 
-export function AttendanceView() {
-  const [selectedClass, setSelectedClass] = React.useState("Grade 8 - A");
-  const [selectedDate, setSelectedDate] = React.useState("2025-04-22");
+function AttendanceInner() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Initialize state from URL search params with sensible defaults
+  const urlClass = searchParams.get("class") || "Grade 8 - A";
+  const urlDate = searchParams.get("date") || "2025-04-22";
+  const rawTab = searchParams.get("tab") || "daily";
+  const urlTab: "daily" | "monthly" | "staff" | "leave" =
+    ["daily", "monthly", "staff", "leave"].includes(rawTab)
+      ? (rawTab as "daily" | "monthly" | "staff" | "leave")
+      : "daily";
+
+  const [selectedClass, setSelectedClass] = React.useState(urlClass);
+  const [selectedDate, setSelectedDate] = React.useState(urlDate);
   const [displayDateText, setDisplayDateText] = React.useState("22 Apr 2025");
-  const [activeTab, setActiveTab] = React.useState<
-    "daily" | "monthly" | "staff" | "leave"
-  >("daily");
+  const [activeTab, setActiveTab] = React.useState<"daily" | "monthly" | "staff" | "leave">(urlTab);
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<
@@ -60,6 +72,47 @@ export function AttendanceView() {
   const [notificationToast, setNotificationToast] = React.useState<string | null>(null);
   const [parentAlertStudent, setParentAlertStudent] =
     React.useState<StudentAttendanceRecord | null>(null);
+
+  // Sync state if browser back/forward buttons change searchParams
+  React.useEffect(() => {
+    const qClass = searchParams.get("class");
+    if (qClass && qClass !== selectedClass) setSelectedClass(qClass);
+
+    const qDate = searchParams.get("date");
+    if (qDate && qDate !== selectedDate) setSelectedDate(qDate);
+
+    const qTab = searchParams.get("tab");
+    if (qTab && ["daily", "monthly", "staff", "leave"].includes(qTab) && qTab !== activeTab) {
+      setActiveTab(qTab as any);
+    }
+  }, [searchParams]);
+
+  // Synchronize state changes to URL query parameters smoothly
+  const updateUrlParams = React.useCallback(
+    (updates: { class?: string; date?: string; tab?: string }) => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      if (updates.class !== undefined) nextParams.set("class", updates.class);
+      if (updates.date !== undefined) nextParams.set("date", updates.date);
+      if (updates.tab !== undefined) nextParams.set("tab", updates.tab);
+      router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  const handleClassChange = (newClass: string) => {
+    setSelectedClass(newClass);
+    updateUrlParams({ class: newClass });
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    updateUrlParams({ date: newDate });
+  };
+
+  const handleTabChange = (newTab: "daily" | "monthly" | "staff" | "leave") => {
+    setActiveTab(newTab);
+    updateUrlParams({ tab: newTab });
+  };
 
   // Sync date text when date input changes
   React.useEffect(() => {
@@ -100,7 +153,7 @@ export function AttendanceView() {
     const current = new Date(selectedDate);
     current.setDate(current.getDate() + days);
     const newStr = current.toISOString().split("T")[0];
-    setSelectedDate(newStr);
+    handleDateChange(newStr);
   };
 
   // Quick single-student status update
@@ -241,7 +294,7 @@ export function AttendanceView() {
                 <input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onChange={(e) => handleDateChange(e.target.value)}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full"
                 />
               </div>
@@ -260,7 +313,7 @@ export function AttendanceView() {
             <div className="relative">
               <select
                 value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+                onChange={(e) => handleClassChange(e.target.value)}
                 className="appearance-none text-xs font-semibold px-4 py-2.5 pr-8 rounded-xl border border-slate-200/90 bg-white text-slate-800 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors cursor-pointer"
               >
                 {ATTENDANCE_CLASSES.map((cls) => (
@@ -290,7 +343,7 @@ export function AttendanceView() {
         <div className="flex items-center gap-1 mt-5 pt-4 border-t border-slate-100 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab("daily")}
+            onClick={() => handleTabChange("daily")}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
               activeTab === "daily"
                 ? "bg-blue-50 text-blue-700 border border-blue-200/70"
@@ -303,7 +356,7 @@ export function AttendanceView() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("monthly")}
+            onClick={() => handleTabChange("monthly")}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
               activeTab === "monthly"
                 ? "bg-blue-50 text-blue-700 border border-blue-200/70"
@@ -316,7 +369,7 @@ export function AttendanceView() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("staff")}
+            onClick={() => handleTabChange("staff")}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
               activeTab === "staff"
                 ? "bg-blue-50 text-blue-700 border border-blue-200/70"
@@ -329,7 +382,7 @@ export function AttendanceView() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("leave")}
+            onClick={() => handleTabChange("leave")}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
               activeTab === "leave"
                 ? "bg-blue-50 text-blue-700 border border-blue-200/70"
@@ -648,5 +701,19 @@ export function AttendanceView() {
         </div>
       )}
     </div>
+  );
+}
+
+export function AttendanceView() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="p-8 text-center text-slate-400 text-xs animate-pulse">
+          Loading attendance register...
+        </div>
+      }
+    >
+      <AttendanceInner />
+    </React.Suspense>
   );
 }

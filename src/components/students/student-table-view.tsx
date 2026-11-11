@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Search,
   Filter,
@@ -31,7 +33,14 @@ import { toast } from "sonner";
 import { cn } from "cn";
 
 export function StudentTableView() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [students, setStudents] = React.useState<Student[]>(MOCK_STUDENTS);
+
+  const getStudentDetailHref = (id: string) => {
+    const base = pathname ? pathname.replace(/\/$/, "") : "/students";
+    return `${base}/${id}`;
+  };
 
   // Filters state
   const [filters, setFilters] = React.useState<StudentFilters>({
@@ -443,8 +452,8 @@ export function StudentTableView() {
 
                       {/* Student info */}
                       <td className="py-3 px-3">
-                        <div
-                          onClick={() => setActiveProfileStudent(student)}
+                        <Link
+                          href={getStudentDetailHref(student.id)}
                           className="flex items-center gap-2.5 cursor-pointer group"
                         >
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#12294D] text-white text-xs font-semibold">
@@ -458,7 +467,7 @@ export function StudentTableView() {
                               {student.admissionNo} • Roll: {student.rollNo}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
 
                       {/* Grade & Section */}
@@ -550,13 +559,12 @@ export function StudentTableView() {
                       {/* Actions */}
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setActiveProfileStudent(student)}
-                            className="rounded-md border border-slate-200 px-2 py-1 text-xs text-[#2570D3] font-medium hover:bg-[#2570D3] hover:text-white transition-colors"
+                          <Link
+                            href={getStudentDetailHref(student.id)}
+                            className="rounded-md border border-slate-200 px-2 py-1 text-xs text-[#2570D3] font-medium hover:bg-[#2570D3] hover:text-white transition-colors inline-block"
                           >
                             Profile
-                          </button>
+                          </Link>
                           <button
                             type="button"
                             onClick={() => setActiveIdCardStudent(student)}
