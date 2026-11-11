@@ -1,488 +1,347 @@
 "use client";
 
 import * as React from "react";
-import { X, Check, ArrowRight, ArrowLeft, Save, UserPlus } from "lucide-react";
-import { GRADES_LIST, SECTIONS_LIST } from "./student-mock-data";
-import type { Student } from "./student-types";
+import { X, ArrowRight, ArrowLeft, UserPlus, ShieldAlert } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createStudent, listCampuses } from "@/lib/api/school";
+import type { AdmissionType } from "@/lib/api/types";
 import { toast } from "sonner";
 import { cn } from "cn";
 
 interface AddStudentModalProps {
   open: boolean;
   onClose: () => void;
-  onStudentCreated: (newStudent: Partial<Student>) => void;
+  onStudentCreated: () => void;
 }
 
-export function AddStudentModal({
-  open,
-  onClose,
-  onStudentCreated,
-}: AddStudentModalProps) {
+const BLOOD_GROUPS = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
+
+/**
+ * Ritik's multi-step admit wizard, rewired to POST /students. Steps map to
+ * what the contract actually accepts: person, enrolment, contacts/address.
+ * The guardian step became an honest note - guardian linking is a separate
+ * endpoint that does not exist yet, and students start as applicants.
+ */
+export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentModalProps) {
   const [currentStep, setCurrentStep] = React.useState(1);
 
-  // Form fields state
-  const [fullName, setFullName] = React.useState("");
-  const [gender, setGender] = React.useState<"Male" | "Female" | "Other">("Male");
-  const [dobBS, setDobBS] = React.useState("2072-05-15");
-  const [dobAD, setDobAD] = React.useState("2015-08-31");
-  const [bloodGroup, setBloodGroup] = React.useState("O+");
+  // Step 1: person
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [gender, setGender] = React.useState<"male" | "female" | "other">("male");
+  const [dob, setDob] = React.useState("");
+  const [bloodGroup, setBloodGroup] = React.useState("");
 
-  const [grade, setGrade] = React.useState("Grade 1");
-  const [section, setSection] = React.useState("A");
-  const [rollNo, setRollNo] = React.useState("01-08");
-  const [campusId, setCampusId] = React.useState<"ktm" | "lal" | "pkr">("ktm");
+  // Step 2: enrolment
+  const [campusId, setCampusId] = React.useState("");
+  const [admissionDate, setAdmissionDate] = React.useState("");
+  const [admissionType, setAdmissionType] = React.useState<AdmissionType>("new");
+  const [emisId, setEmisId] = React.useState("");
+  const [hasSpecialNeeds, setHasSpecialNeeds] = React.useState(false);
+  const [previousSchoolName, setPreviousSchoolName] = React.useState("");
+  const [previousTcNo, setPreviousTcNo] = React.useState("");
 
-  const [guardianName, setGuardianName] = React.useState("");
-  const [guardianRelation, setGuardianRelation] = React.useState<"Father" | "Mother" | "Guardian">("Father");
-  const [guardianPhone, setGuardianPhone] = React.useState("");
-  const [guardianEmail, setGuardianEmail] = React.useState("");
+  // Step 3: contacts & address
+  const [phone, setPhone] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [line1, setLine1] = React.useState("");
+  const [ward, setWard] = React.useState("");
+  const [municipality, setMunicipality] = React.useState("");
+  const [district, setDistrict] = React.useState("");
 
-  const [municipality, setMunicipality] = React.useState("Kathmandu Metropolitan");
-  const [ward, setWard] = React.useState("Ward 10");
-  const [street, setStreet] = React.useState("");
-  const [district, setDistrict] = React.useState("Kathmandu");
+  const campuses = useQuery({ queryKey: ["campuses"], queryFn: listCampuses, retry: false });
+
+  const createMutation = useMutation({
+    mutationFn: createStudent,
+    onSuccess: (created) => {
+      toast.success(`${created.person.displayName} admitted as ${created.admissionNo} (applicant).`);
+      onStudentCreated();
+      onClose();
+      setCurrentStep(1);
+    },
+    onError: (error: Error) => toast.error(error.message || "Admission failed - check the fields."),
+  });
 
   if (!open) return null;
 
-  const handleNext = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (currentStep === 1 && !fullName.trim()) {
-      toast.error("Please enter the student full name");
-      return;
+  const validateStep = (): boolean => {
+    if (currentStep === 1 && !firstName.trim()) {
+      toast.error("First name is required.");
+      return false;
     }
-    if (currentStep === 3 && (!guardianName.trim() || !guardianPhone.trim())) {
-      toast.error("Please provide guardian name and emergency phone");
-      return;
+    if (currentStep === 2) {
+      if (!admissionDate) {
+        toast.error("Admission date is required.");
+        return false;
+      }
+      if (emisId && !/^[0-9A-Za-z-]{1,30}$/.test(emisId)) {
+        toast.error("EMIS id: max 30 characters of letters, digits and dashes.");
+        return false;
+      }
+      if (admissionType === "transfer_in" && (!previousSchoolName.trim() || !previousTcNo.trim())) {
+        toast.error("Transfer-in needs the previous school name and TC number.");
+        return false;
+      }
     }
-    if (currentStep < 5) {
-      setCurrentStep((s) => s + 1);
-    } else {
-      handleSubmit();
+    if (currentStep === 3) {
+      if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+        toast.error("That email does not look valid.");
+        return false;
+      }
+      if (phone && !/^\+?\d{7,15}$/.test(phone)) {
+        toast.error("Phone: 7-15 digits, optional leading +.");
+        return false;
+      }
     }
+    return true;
   };
 
-  const handleSubmit = () => {
-    const admissionNo = `ADM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newStudent: Partial<Student> = {
-      id: `std-${Date.now()}`,
-      admissionNo,
-      rollNo,
-      fullName,
-      gender,
-      dobBS,
-      dobAD,
-      bloodGroup,
-      campusId,
-      campusName:
-        campusId === "ktm"
-          ? "Main Campus (Kathmandu)"
-          : campusId === "lal"
-          ? "City Wing (Lalitpur)"
-          : "West Campus (Pokhara)",
-      grade,
-      section,
-      status: "Active",
-      joinedDate: "2026-04-15",
-      address: {
-        street: street || "Main Street",
-        ward: ward || "Ward 1",
-        municipality,
-        district,
+  const handleNext = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateStep()) return;
+    if (currentStep < 4) {
+      setCurrentStep((s) => s + 1);
+      return;
+    }
+    createMutation.mutate({
+      person: {
+        firstName: firstName.trim(),
+        lastName: lastName.trim() || null,
+        gender,
+        dob: dob || null,
+        bloodGroup: bloodGroup || null,
+        ...(phone || email
+          ? {
+              contacts: [
+                ...(phone ? [{ type: "phone", value: phone, isPrimary: true }] : []),
+                ...(email ? [{ type: "email", value: email, isPrimary: !phone }] : []),
+              ],
+            }
+          : {}),
+        ...(line1 || ward || municipality || district
+          ? {
+              addresses: [
+                {
+                  type: "postal",
+                  line1: line1 || null,
+                  ward: ward || null,
+                  municipality: municipality || null,
+                  district: district || null,
+                  country: "NP",
+                },
+              ],
+            }
+          : {}),
       },
-      guardians: [
-        {
-          relation: guardianRelation,
-          name: guardianName || "Parent",
-          phone: guardianPhone || "+977 9800000000",
-          email: guardianEmail || undefined,
-          isEmergencyContact: true,
-        },
-      ],
-      attendancePct: 100,
-      totalPresentDays: 1,
-      totalSchoolDays: 1,
-      feeStatus: "Paid",
-      pendingDueNpr: 0,
-      documents: [],
-      results: [],
-      feeLedger: [],
-      timeline: [
-        {
-          id: `tl-${Date.now()}`,
-          date: "2026-04-15",
-          title: "Admitted into school",
-          description: `Registered in ${grade}-${section} under ${admissionNo}.`,
-          type: "admission",
-        },
-      ],
-    };
-
-    onStudentCreated(newStudent);
-    toast.success(`Student ${fullName} registered successfully!`);
-    onClose();
+      ...(campusId ? { campusId } : {}),
+      admissionDate,
+      admissionType,
+      ...(emisId ? { emisId } : {}),
+      hasSpecialNeeds,
+      ...(admissionType === "transfer_in"
+        ? { previousSchoolName: previousSchoolName.trim(), previousTcNo: previousTcNo.trim() }
+        : {}),
+    });
   };
 
   const STEPS = [
     { num: 1, title: "Personal" },
-    { num: 2, title: "Academic" },
-    { num: 3, title: "Guardians" },
-    { num: 4, title: "Address" },
-    { num: 5, title: "Confirm" },
+    { num: 2, title: "Admission" },
+    { num: 3, title: "Contact & Address" },
+    { num: 4, title: "Confirm" },
   ];
 
+  const label = "block font-medium text-slate-700 mb-1";
+  const input = "w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-hidden focus:border-[#2570D3]";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="relative w-full max-w-xl rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xl my-8">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2570D3]/10 text-[#2570D3]">
-              <UserPlus className="h-4 w-4" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm text-slate-900">
-                Enroll new student
-              </h3>
-              <p className="text-xs text-slate-500">
-                Step {currentStep} of 5: {STEPS[currentStep - 1].title} details
-              </p>
-            </div>
+            <UserPlus className="h-4 w-4 text-[#2570D3]" />
+            <h3 className="font-semibold text-sm text-slate-900">Admit a new student</h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
-          >
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Multi-step Progress Bar */}
-        <div className="mt-4 flex items-center justify-between px-2">
-          {STEPS.map((step) => (
-            <div key={step.num} className="flex items-center gap-1.5 text-xs">
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 py-4">
+          {STEPS.map((step, i) => (
+            <React.Fragment key={step.num}>
               <div
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-colors",
+                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold",
                   currentStep === step.num
                     ? "bg-[#2570D3] text-white"
                     : currentStep > step.num
-                    ? "bg-[#1F9D6B] text-white"
-                    : "bg-slate-100 text-slate-500"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-500"
                 )}
               >
-                {currentStep > step.num ? <Check className="h-3 w-3" /> : step.num}
+                {step.num}. {step.title}
               </div>
-              <span
-                className={cn(
-                  "hidden sm:inline font-medium text-[11px]",
-                  currentStep === step.num
-                    ? "text-[#2570D3] font-semibold"
-                    : "text-slate-400"
-                )}
-              >
-                {step.title}
-              </span>
-            </div>
+              {i < STEPS.length - 1 && <div className="h-px flex-1 bg-slate-200" />}
+            </React.Fragment>
           ))}
         </div>
 
-        {/* Step Forms */}
-        <form onSubmit={handleNext} className="mt-6 space-y-4 text-xs">
-          {/* STEP 1: PERSONAL */}
+        <form onSubmit={handleNext} className="mt-2 space-y-4 text-xs">
           {currentStep === 1 && (
-            <div className="space-y-3.5">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">
-                  Full student name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Diwash Rai"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-[#2570D3] outline-hidden"
-                />
+                <label className={label}>First name *</label>
+                <input className={input} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="e.g. Aarav" />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Gender
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value as any)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 bg-white"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Blood group
-                  </label>
-                  <select
-                    value={bloodGroup}
-                    onChange={(e) => setBloodGroup(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 bg-white"
-                  >
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Date of birth (B.S.)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="YYYY-MM-DD"
-                    value={dobBS}
-                    onChange={(e) => setDobBS(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Date of birth (A.D.)
-                  </label>
-                  <input
-                    type="date"
-                    value={dobAD}
-                    onChange={(e) => setDobAD(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: ACADEMIC */}
-          {currentStep === 2 && (
-            <div className="space-y-3.5">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">
-                  Enrolling campus
-                </label>
-                <select
-                  value={campusId}
-                  onChange={(e) => setCampusId(e.target.value as any)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs bg-white"
-                >
-                  <option value="ktm">Main Campus (Kathmandu)</option>
-                  <option value="lal">City Wing (Lalitpur)</option>
-                  <option value="pkr">West Campus (Pokhara)</option>
+                <label className={label}>Last name</label>
+                <input className={input} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="e.g. Sharma" />
+              </div>
+              <div>
+                <label className={label}>Gender</label>
+                <select className={input} value={gender} onChange={(e) => setGender(e.target.value as typeof gender)}>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Grade / Class
-                  </label>
-                  <select
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs bg-white"
-                  >
-                    {GRADES_LIST.filter((g) => g !== "All grades").map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Section
-                  </label>
-                  <select
-                    value={section}
-                    onChange={(e) => setSection(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs bg-white"
-                  >
-                    {SECTIONS_LIST.filter((s) => s !== "All sections").map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               <div>
-                <label className="block font-medium text-slate-700 mb-1">
-                  Assigned roll number
-                </label>
-                <input
-                  type="text"
-                  value={rollNo}
-                  onChange={(e) => setRollNo(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                />
+                <label className={label}>Date of birth</label>
+                <input type="date" className={input} value={dob} onChange={(e) => setDob(e.target.value)} />
+              </div>
+              <div className="col-span-2">
+                <label className={label}>Blood group</label>
+                <select className={input} value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)}>
+                  <option value="">Not recorded</option>
+                  {BLOOD_GROUPS.map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
 
-          {/* STEP 3: GUARDIANS */}
+          {currentStep === 2 && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={label}>Campus</label>
+                <select className={input} value={campusId} onChange={(e) => setCampusId(e.target.value)}>
+                  <option value="">Unassigned</option>
+                  {campuses.data?.items.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={label}>Admission date *</label>
+                <input type="date" className={input} value={admissionDate} onChange={(e) => setAdmissionDate(e.target.value)} />
+              </div>
+              <div>
+                <label className={label}>Admission type</label>
+                <select className={input} value={admissionType} onChange={(e) => setAdmissionType(e.target.value as AdmissionType)}>
+                  <option value="new">New</option>
+                  <option value="transfer_in">Transfer in</option>
+                  <option value="readmission">Readmission</option>
+                </select>
+              </div>
+              <div>
+                <label className={label}>EMIS id (optional)</label>
+                <input className={input} value={emisId} onChange={(e) => setEmisId(e.target.value)} placeholder="Government id, if issued" />
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <input
+                  id="special-needs"
+                  type="checkbox"
+                  checked={hasSpecialNeeds}
+                  onChange={(e) => setHasSpecialNeeds(e.target.checked)}
+                  className="rounded border-slate-300 text-[#2570D3]"
+                />
+                <label htmlFor="special-needs" className="text-slate-700">
+                  This student has special needs
+                </label>
+              </div>
+              {admissionType === "transfer_in" && (
+                <>
+                  <div>
+                    <label className={label}>Previous school *</label>
+                    <input className={input} value={previousSchoolName} onChange={(e) => setPreviousSchoolName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={label}>Previous TC number *</label>
+                    <input className={input} value={previousTcNo} onChange={(e) => setPreviousTcNo(e.target.value)} />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {currentStep === 3 && (
-            <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Guardian relation
-                  </label>
-                  <select
-                    value={guardianRelation}
-                    onChange={(e) => setGuardianRelation(e.target.value as any)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs bg-white"
-                  >
-                    <option value="Father">Father</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Guardian">Local Guardian</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Guardian name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Rameshwar Rai"
-                    value={guardianName}
-                    onChange={(e) => setGuardianName(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                  />
-                </div>
-              </div>
-
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">
-                  Primary mobile number (SMS alerts) *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="+977 98XXXXXXXX"
-                  value={guardianPhone}
-                  onChange={(e) => setGuardianPhone(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-mono"
-                />
+                <label className={label}>Guardian / contact phone</label>
+                <input className={input} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+977 98..." />
               </div>
-
               <div>
-                <label className="block font-medium text-slate-700 mb-1">
-                  Email address (optional)
-                </label>
-                <input
-                  type="email"
-                  placeholder="parent@example.com"
-                  value={guardianEmail}
-                  onChange={(e) => setGuardianEmail(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                />
+                <label className={label}>Contact email</label>
+                <input className={input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="parent@example.com" />
               </div>
-            </div>
-          )}
-
-          {/* STEP 4: ADDRESS */}
-          {currentStep === 4 && (
-            <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    District
-                  </label>
-                  <input
-                    type="text"
-                    value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Municipality / Palika
-                  </label>
-                  <input
-                    type="text"
-                    value={municipality}
-                    onChange={(e) => setMunicipality(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                  />
-                </div>
+              <div className="col-span-2">
+                <label className={label}>Street / Tole</label>
+                <input className={input} value={line1} onChange={(e) => setLine1(e.target.value)} placeholder="e.g. Minbhawan Marga" />
               </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Ward number
-                  </label>
-                  <input
-                    type="text"
-                    value={ward}
-                    onChange={(e) => setWard(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block font-medium text-slate-700 mb-1">
-                    Street / Tole
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Minbhawan Marga"
-                    value={street}
-                    onChange={(e) => setStreet(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                  />
-                </div>
+              <div>
+                <label className={label}>Ward</label>
+                <input className={input} value={ward} onChange={(e) => setWard(e.target.value)} />
               </div>
-            </div>
-          )}
-
-          {/* STEP 5: CONFIRMATION */}
-          {currentStep === 5 && (
-            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/60 space-y-3">
-              <p className="font-semibold text-slate-900">
-                Please verify new enrollment details:
+              <div>
+                <label className={label}>Municipality</label>
+                <input className={input} value={municipality} onChange={(e) => setMunicipality(e.target.value)} />
+              </div>
+              <div className="col-span-2">
+                <label className={label}>District</label>
+                <input className={input} value={district} onChange={(e) => setDistrict(e.target.value)} />
+              </div>
+              <p className="col-span-2 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-[11px] text-amber-800">
+                <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Guardian persons and their rights (pickup, custody, fee payment) are
+                linked later through POST /students/&lt;id&gt;/guardians - the endpoint
+                exists, its UI is phase 2. These contact details attach to the
+                student&apos;s own person record.
               </p>
+            </div>
+          )}
+
+          {currentStep === 4 && (
+            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/60 space-y-3">
+              <p className="font-semibold text-slate-900">Please verify the new enrollment:</p>
               <div className="grid grid-cols-2 gap-2 text-slate-700">
                 <div>
                   <span className="text-slate-400">Student:</span>
-                  <p className="font-semibold">{fullName}</p>
+                  <p className="font-semibold">{firstName} {lastName}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400">Class & Roll:</span>
+                  <span className="text-slate-400">Admission:</span>
                   <p className="font-semibold">
-                    {grade} ({section}) • {rollNo}
+                    {admissionDate} • {admissionType.replace("_", " ")}
                   </p>
                 </div>
                 <div>
-                  <span className="text-slate-400">Guardian:</span>
-                  <p className="font-semibold">{guardianName} ({guardianRelation})</p>
+                  <span className="text-slate-400">Contact:</span>
+                  <p className="font-semibold">{phone || email || "—"}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400">Contact:</span>
-                  <p className="font-semibold">{guardianPhone}</p>
+                  <span className="text-slate-400">Campus:</span>
+                  <p className="font-semibold">
+                    {campuses.data?.items.find((c) => c.id === campusId)?.name ?? "Unassigned"}
+                  </p>
                 </div>
               </div>
               <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-200">
-                Admission record and student account will be initialized with status "Active".
+                The server generates the admission number and the record starts as
+                &quot;applicant&quot;. Activating a student is a separate status change once
+                guardians are linked.
               </p>
             </div>
           )}
@@ -506,15 +365,16 @@ export function AddStudentModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 transition-colors"
+                className="rounded-lg px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#1C5BB0] transition-colors"
+                disabled={createMutation.isPending}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#1C5BB0] transition-colors disabled:opacity-50"
               >
-                <span>{currentStep === 5 ? "Confirm & enroll" : "Next step"}</span>
+                <span>{currentStep === 4 ? (createMutation.isPending ? "Admitting..." : "Confirm & enroll") : "Next step"}</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>

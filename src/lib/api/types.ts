@@ -200,3 +200,168 @@ export type GrantRoleInput = {
   validFrom?: string;
   validTo?: string;
 };
+
+// --- students module -------------------------------------------------------
+
+export type StudentStatus =
+  | "applicant"
+  | "active"
+  | "alumni"
+  | "transferred_out"
+  | "dropped"
+  | "suspended";
+
+export type AdmissionType = "new" | "transfer_in" | "readmission";
+
+export type CampusRef = { id: string; code: string; name: string };
+
+export type PersonSummary = {
+  id: string;
+  displayName: string;
+  gender: string | null;
+  dob: string | null;
+};
+
+export type StudentListItem = {
+  id: string;
+  admissionNo: string;
+  emisId: string | null;
+  status: StudentStatus;
+  admissionType: AdmissionType;
+  admissionDate: string;
+  hasSpecialNeeds: boolean;
+  campus: CampusRef | null;
+  person: PersonSummary;
+  createdAt: string;
+};
+
+export type StudentListParams = {
+  page?: number;
+  limit?: number;
+  status?: StudentStatus;
+  campusId?: string;
+  admissionType?: AdmissionType;
+  /** Name contains, or exact admission number / EMIS id. */
+  search?: string;
+};
+
+export type PersonContact = {
+  id: string;
+  type: "phone" | "email" | "whatsapp" | string;
+  value: string;
+  isPrimary: boolean;
+  verifiedAt: string | null;
+};
+
+export type PersonAddress = {
+  id: string;
+  type: string;
+  line1: string | null;
+  line2: string | null;
+  ward: string | null;
+  municipality: string | null;
+  district: string | null;
+  province: string | null;
+  postalCode: string | null;
+  country: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export type PersonDetail = PersonSummary & {
+  userId: string | null;
+  firstName: string;
+  middleName: string | null;
+  lastName: string | null;
+  birthPlace: string | null;
+  bloodGroup: string | null;
+  nationality: string | null;
+  nationalId: string | null;
+  motherTongue: string | null;
+  religion: string | null;
+  ethnicity: string | null;
+  photoFileId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  contacts: PersonContact[];
+  addresses: PersonAddress[];
+};
+
+export type GuardianLink = {
+  guardianId: string;
+  personId: string;
+  displayName: string;
+  primaryPhone: string | null;
+  relation: string;
+  isPrimary: boolean;
+  isEmergencyContact: boolean;
+  livesWithStudent: boolean;
+  canPickup: boolean;
+  canViewResults: boolean;
+  canPayFees: boolean;
+  hasCustody: boolean;
+  validFrom: string | null;
+  validTo: string | null;
+  isActive: boolean;
+};
+
+export type StudentDetail = {
+  id: string;
+  admissionNo: string;
+  emisId: string | null;
+  status: StudentStatus;
+  admissionType: AdmissionType;
+  admissionDate: string;
+  previousSchoolName: string | null;
+  previousSchoolClass: string | null;
+  previousTcNo: string | null;
+  hasSpecialNeeds: boolean;
+  leavingDate: string | null;
+  leavingReason: string | null;
+  tcIssuedNo: string | null;
+  remarks: string | null;
+  campus: CampusRef | null;
+  person: PersonDetail;
+  guardians: GuardianLink[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StudentStatusEntry = {
+  id: string;
+  fromStatus: StudentStatus | null;
+  toStatus: StudentStatus;
+  reason: string | null;
+  changedBy: string;
+  changedAt: string;
+};
+
+export type StudentHealth = {
+  studentId: string;
+  allergies: string | null;
+  medicalConditions: string | null;
+  medications: string | null;
+  disabilityType: string | null;
+  disabilityNotes: string | null;
+  doctorName: string | null;
+  doctorPhone: string | null;
+  insuranceNo: string | null;
+  emergencyInstructions: string | null;
+  updatedAt: string;
+  updatedBy: string;
+};
+
+export type CreateStudentInput = {
+  person: {
+    firstName: string;
+    lastName?: string | null;
+    gender: "male" | "female" | "other";
+    dob?: string | null;
+    bloodGroup?: string | null;
+  };
+  campusId?: string;
+  admissionDate: string;
+  admissionType?: AdmissionType;
+  emisId?: string | null;
+  hasSpecialNeeds?: boolean;
+};
