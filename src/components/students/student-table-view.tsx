@@ -194,7 +194,7 @@ export function StudentTableView() {
           <button
             type="button"
             disabled
-            title="Export endpoint is not in the API contract yet"
+            title="Export will arrive in a future update"
             className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE5F0] bg-white px-3 py-1.5 text-xs font-medium text-slate-400 shadow-2xs cursor-not-allowed"
           >
             <Download className="h-3.5 w-3.5 text-slate-400" />

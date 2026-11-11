@@ -190,7 +190,7 @@ export function StudentProfilePageView({
           <button
             type="button"
             disabled
-            title="Edit form arrives in phase 2 - PATCH /students/{id} is already in the contract"
+            title="Editing will arrive in a future update"
             className="inline-flex items-center gap-1.5 rounded-lg bg-slate-300 px-3.5 py-1.5 text-xs font-medium text-white cursor-not-allowed"
           >
             <Edit3 className="h-3.5 w-3.5" />
@@ -340,8 +340,8 @@ export function StudentProfilePageView({
               </h3>
               {student.guardians.length === 0 ? (
                 <p className="pt-3 text-[11px] text-slate-400">
-                  No guardian linked yet. The linking endpoints exist
-                  (POST /students/&lt;id&gt;/guardians); the linking UI arrives in phase 2.
+                  No guardians linked yet. You will be able to link parents and
+                  guardians from this page in a future update.
                 </p>
               ) : (
                 <ul className="pt-3 space-y-3 text-xs">

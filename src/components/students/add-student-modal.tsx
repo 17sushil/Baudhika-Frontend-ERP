@@ -305,10 +305,9 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
               </div>
               <p className="col-span-2 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-[11px] text-amber-800">
                 <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Guardian persons and their rights (pickup, custody, fee payment) are
-                linked later through POST /students/&lt;id&gt;/guardians - the endpoint
-                exists, its UI is phase 2. These contact details attach to the
-                student&apos;s own person record.
+                Parents and guardians are linked to the student after admission,
+                from the student&apos;s profile page. The contacts in this step belong
+                to the student only.
               </p>
             </div>
           )}
