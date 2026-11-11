@@ -1,22 +1,23 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { StudentProfile } from "@/components/students/student-profile";
-import { useTenant } from "@/providers/tenant-provider";
+import { useParams, useRouter } from "next/navigation";
+import { StudentProfilePageView } from "@/components/students/student-profile-page-view";
 
 /**
- * Dynamic route: /t/<slug>/students/<studentId>.
- * A URL instead of a drawer, so back/forward, sharing and prefetching behave
- * like the rest of the app. Data comes from GET /students/{id} (cached by
- * react-query; the list page warms this query on row hover).
+ * A student profile is a URL, not drawer state: back/forward, refresh and
+ * shared links all behave. The view itself is Ritik's design, rewired to
+ * GET /students/{id} (+ status history, + permission-gated health).
  */
-export default function StudentProfilePage() {
+export default function TenantStudentProfilePage() {
   const params = useParams<{ studentId: string }>();
-  const { tenant } = useTenant();
+  const router = useRouter();
 
   return (
     <main className="min-h-screen p-6 md:p-8">
-      <StudentProfile slug={tenant.slug} studentId={params.studentId} />
+      <StudentProfilePageView
+        studentId={params.studentId}
+        onBack={() => router.back()}
+      />
     </main>
   );
 }

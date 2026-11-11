@@ -309,3 +309,29 @@ KPI status buckets (`/dashboard/kpis`), future file storage behind
 `person.photoFileId` (permission text mentions uploaded documents), and
 Next/react-query prefetching - which is what was implemented here. If a
 storage-bucket endpoint lands later, it belongs in a files module, not here.
+
+## 16. Students UI on Ritik's design, real data (supersedes §15 stopgaps)
+
+The directory, profile, admit wizard and ID card are Ritik's components with
+the mock array removed as a data source. Every read/write goes through the
+students API; nothing renders invented values.
+
+| Component | Endpoint(s) | Notes |
+|---|---|---|
+| `student-table-view.tsx` | `GET /students`, `GET /campuses` | server-side search/status/admissionType/campusId + paging (8/page); sort is current-page only (no contract param) with a visible note; rows are `next/link`; hover prefetches detail; printer icon fetches detail then opens ID card |
+| `student-profile-page-view.tsx` | `GET /students/{id}`, `.../status-history`, `.../health` | tabs without a backend (academic/documents/fees/attendance) show honest "arrives with module" states and disabled stubs with tooltips; health gated `student.health.read`, audit-logged; sensitive person fields gated `person.sensitive.read` |
+| `add-student-modal.tsx` | `POST /students`, `GET /campuses` | 4 steps: person / enrolment / contacts+address / confirm; server generates admissionNo; starts as applicant |
+| `student-id-card-modal.tsx` | (uses detail already fetched) | grade/section/roll print as dashes until the academics module exists |
+
+Decisions recorded with the product owner: unbuilt sections use honest empty
+states (not demo data); contract-unsupported controls are disabled with
+reasons (not fake success toasts); bulk selection removed until a bulk
+endpoint exists; Export disabled until an export endpoint exists.
+
+My §15 stopgap components (`students-table.tsx`, `student-profile.tsx`,
+`add-student-form.tsx`) are now dead code - delete in the mock-cleanup PR
+together with Ritik's unused mock files.
+
+Test hygiene (backend): `npm run cleanup:test-students` empties student test
+rows in every tenant while keeping tables, permission codes and campuses.
+Admission numbers restart at 0001 afterwards.

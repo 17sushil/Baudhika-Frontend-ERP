@@ -347,8 +347,9 @@ export type StudentHealth = {
   doctorPhone: string | null;
   insuranceNo: string | null;
   emergencyInstructions: string | null;
-  updatedAt: string;
-  updatedBy: string;
+  /** Null until someone saves a health record: the row is created lazily. */
+  updatedAt: string | null;
+  updatedBy: string | null;
 };
 
 export type CreateStudentInput = {
@@ -358,6 +359,16 @@ export type CreateStudentInput = {
     gender: "male" | "female" | "other";
     dob?: string | null;
     bloodGroup?: string | null;
+    contacts?: Array<{ type: string; value: string; isPrimary?: boolean }>;
+    addresses?: Array<{
+      type: string;
+      line1?: string | null;
+      ward?: string | null;
+      municipality?: string | null;
+      district?: string | null;
+      province?: string | null;
+      country?: string;
+    }>;
   };
   campusId?: string;
   admissionDate: string;
