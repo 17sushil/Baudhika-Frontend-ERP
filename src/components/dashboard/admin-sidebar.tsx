@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   School,
+  Users,
   X,
 } from "lucide-react";
 import { cn } from "cn";
@@ -30,6 +31,7 @@ const NAV_MODULES: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Students", href: "/students", icon: GraduationCap },
   { title: "Academics", href: "/academics", icon: BookOpen },
+  { title: "Users", href: "/users", icon: Users },
   { title: "Attendance", href: "/attendance", icon: CalendarCheck },
   { title: "Exams", href: "/examinations", icon: FileSpreadsheet },
   { title: "Fees", href: "/finance", icon: WalletCards },

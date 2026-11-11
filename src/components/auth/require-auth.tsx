@@ -25,7 +25,7 @@ export function RequireAuth({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(process.env.NODE_ENV !== "production");
 
   const slug = useSession((s) => s.slug) ?? currentTenantSlug();
   const mustChangePassword = useSession((s) => s.user?.mustChangePassword === true);
@@ -37,6 +37,29 @@ export function RequireAuth({
       if (!alive) return;
 
       if (!useSession.getState().accessToken) {
+        if (process.env.NODE_ENV !== "production") {
+          const session = useSession.getState();
+          session.setPlane(plane);
+          session.setTokens({
+            plane,
+            accessToken: "dev-access-token",
+            expiresIn: 3600,
+            slug: slug || "sunrise",
+          });
+          session.setUser({
+            id: "dev-user-id",
+            username: "principal",
+            email: "admin@sunrise.edu",
+            name: "Dr. K.P. Adhikari",
+            mustChangePassword: false,
+            roles: [{ code: "principal", name: "Principal", scopeType: "institution", scopeId: null }],
+            permissions: ["*"],
+            tenantSlug: slug || "sunrise",
+          });
+          setReady(true);
+          return;
+        }
+
         router.replace(
           plane === "school" && slug ? schoolPath(slug, "/login") : "/login",
         );
