@@ -17,6 +17,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { getStudent, listCampuses, listStudents } from "@/lib/api/school";
+import { schoolPath } from "@/lib/tenant-slug";
 import type {
   AdmissionType,
   StudentDetail,
@@ -84,7 +85,7 @@ function SortHeader({
  * Rows are links: the profile is a real route, not inline state.
  */
 export function StudentTableView() {
-  const { tenant } = useTenant();
+  const { tenant, slug } = useTenant();
   const queryClient = useQueryClient();
   const canCreate = useHasPermission("student.create");
 
@@ -178,7 +179,12 @@ export function StudentTableView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#DDE5F0] pb-5">
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <span className="font-medium text-slate-700">Home</span>
+            <Link
+              href={schoolPath(slug, "/dashboard")}
+              className="font-medium text-slate-700 hover:text-[#2570D3] hover:underline"
+            >
+              Home
+            </Link>
             <ChevronRight className="h-3 w-3 text-slate-400" />
             <span className="font-semibold text-[#2570D3]">Student directory</span>
           </div>
