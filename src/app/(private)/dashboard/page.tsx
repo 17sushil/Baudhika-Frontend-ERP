@@ -4,5 +4,9 @@ import { PlatformDashboard } from "@/components/super-admin-dashboard/platform-d
 export const instant = false;
 
 export default function DashboardPage() {
-  return <Suspense fallback={null}><PlatformDashboard /></Suspense>;
+  return (
+    <Suspense fallback={null}>
+      <PlatformDashboard />
+    </Suspense>
+  );
 }
