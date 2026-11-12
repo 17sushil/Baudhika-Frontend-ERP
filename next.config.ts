@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     agentFeedback: true,
+    // cacheComponents enables Next 16's instant-navigation validation, which
+    // drops our client-component pages during its dev-time check and then
+    // falls back to full reloads (tearing the in-memory session). Limit the
+    // validation to segments that explicitly opt in via `export const instant`.
+    instantInsights: {
+      validationLevel: "manual-warning",
+    },
   },
   cacheComponents: true,
   partialPrefetching: true,
