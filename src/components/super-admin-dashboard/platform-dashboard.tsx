@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, MotionConfig } from "framer-motion";
 import { Building2, Database, Plus, TrendingUp, Users, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,9 @@ import { DashboardShell } from "./shell";
 import { SchoolTable } from "./school-table";
 import { PlansSection } from "./sections/plans";
 import { AuditSection, BillingSection, ReportsSection, SettingsSection } from "./sections/operations";
-import { SchoolDetails } from "./sections/school-details";
 import { SectionHeader } from "./sections/shared";
 import { sampleSchools } from "./data/sample-data";
-import type { PlatformSection, School } from "./types";
+import type { PlatformSection } from "./types";
 
 const metrics = [
   { title: "Total schools", detail: "Schools on the platform", icon: Building2, tone: "var(--primary)" },
@@ -22,9 +22,15 @@ const metrics = [
 ];
 
 export function PlatformDashboard() {
-  const [search, setSearch] = useState("");
-  const [section, setSection] = useState<PlatformSection>("overview");
-  const [detailSchool, setDetailSchool] = useState<School | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
+  const sectionParam = searchParams.get("section");
+  const sections: PlatformSection[] = ["overview", "schools", "plans", "billing", "reports", "audit", "settings"];
+  const section = sections.find((item) => item === sectionParam) || "overview";
+  function setSection(next: PlatformSection) {
+    router.push(next === "overview" ? "/dashboard" : `/dashboard?section=${next}`);
+  }
   const [sortAscending, setSortAscending] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -35,9 +41,14 @@ export function PlatformDashboard() {
       .sort((a, b) => sortAscending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
   }, [search, sortAscending, statusFilter]);
 
+  const recentSchools = useMemo(() => [...visibleSchools]
+    .sort((a, b) => b.joined.localeCompare(a.joined))
+    .slice(0, 5)
+    .sort((a, b) => sortAscending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)), [visibleSchools, sortAscending]);
+
   return (
     <MotionConfig reducedMotion="user">
-      <DashboardShell search={search} onSearch={(value) => { setSearch(value); if (value) setSection("schools"); }} activeSection={section} onSelect={setSection}>
+      <DashboardShell search={search} onSearch={(value) => { setSearch(value); if (value && section !== "schools") setSection("schools"); }} activeSection={section} onSelect={setSection}>
         <motion.div id="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="mx-auto max-w-7xl scroll-mt-24 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
           {section === "overview" && <>
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -58,7 +69,7 @@ export function PlatformDashboard() {
             ))}
           </div>
 
-          <div className="mt-9"><SchoolTable schools={visibleSchools} total={sampleSchools.length} query={search.trim()} statusFilter={statusFilter} onStatusFilter={setStatusFilter} sortAscending={sortAscending} onSort={() => setSortAscending((current) => !current)} onDetails={setDetailSchool} /></div>
+          <div className="mt-9"><SchoolTable overview schools={recentSchools} total={sampleSchools.length} query={search.trim()} statusFilter={statusFilter} onStatusFilter={setStatusFilter} sortAscending={sortAscending} onSort={() => setSortAscending((current) => !current)} /></div>
 
           <section className="mt-9" aria-labelledby="activity-heading">
             <div className="mb-4 flex items-center justify-between"><div><h2 id="activity-heading" className="text-base font-semibold tracking-tight">Platform activity</h2><p className="mt-1 text-xs text-muted-foreground">A closer look at growth and school status.</p></div></div>
@@ -74,14 +85,13 @@ export function PlatformDashboard() {
             </div>
           </section>
           </>}
-          {section === "schools" && <><SectionHeader title="Schools" description="Browse and manage institutions in your workspace." action={<Button type="button" aria-disabled="true" title="Available when connected"><Plus /> Add school</Button>} /><div className="mt-8"><SchoolTable schools={visibleSchools} total={sampleSchools.length} query={search.trim()} statusFilter={statusFilter} onStatusFilter={setStatusFilter} sortAscending={sortAscending} onSort={() => setSortAscending((current) => !current)} onDetails={setDetailSchool} /></div></>}
+          {section === "schools" && <><SectionHeader title="Schools" description="Browse and manage institutions in your workspace." action={<Button type="button" aria-disabled="true" title="Available when connected"><Plus /> Add school</Button>} /><div className="mt-8"><SchoolTable schools={visibleSchools} total={sampleSchools.length} query={search.trim()} statusFilter={statusFilter} onStatusFilter={setStatusFilter} sortAscending={sortAscending} onSort={() => setSortAscending((current) => !current)} /></div></>}
           {section === "plans" && <PlansSection />}
           {section === "billing" && <BillingSection />}
           {section === "reports" && <ReportsSection />}
           {section === "audit" && <AuditSection />}
           {section === "settings" && <SettingsSection />}
         </motion.div>
-        <SchoolDetails school={detailSchool} onClose={() => setDetailSchool(null)} />
       </DashboardShell>
     </MotionConfig>
   );
