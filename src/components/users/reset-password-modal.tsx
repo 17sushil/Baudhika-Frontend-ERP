@@ -10,8 +10,8 @@ import { cn } from "cn";
 import { generatePassword } from "./create-user-modal";
 
 const input =
-  "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-[13px] text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400";
-const label = "block text-xs font-medium text-slate-600 mb-1";
+  "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400";
+const label = "block text-[13px] font-medium text-slate-600 mb-1";
 
 /**
  * Set a new password for someone else's login. The backend signs them out
@@ -66,7 +66,7 @@ export function ResetPasswordModal({
             mutation.mutate();
           }}
         >
-          <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+          <p className="rounded-lg bg-amber-50 p-3 text-[13px] text-amber-800">
             {name} is signed out everywhere and any sign-in lockout is cleared. Share the
             new password with them in person.
           </p>
@@ -97,7 +97,7 @@ export function ResetPasswordModal({
                   setPassword(generatePassword());
                   setShow(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
               >
                 <Shuffle className="h-3.5 w-3.5" />
                 Generate
@@ -105,7 +105,7 @@ export function ResetPasswordModal({
             </div>
           </div>
 
-          <label className="flex items-start gap-2 text-[13px] text-slate-700">
+          <label className="flex items-start gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={mustChange}
@@ -119,14 +119,14 @@ export function ResetPasswordModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+              className="rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={password.length < 8 || mutation.isPending}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-[13px] font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-sm font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <KeyRound className="h-4 w-4" />
               {mutation.isPending ? "Resetting..." : "Reset password"}

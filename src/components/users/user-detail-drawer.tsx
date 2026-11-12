@@ -29,8 +29,8 @@ function formatWhen(iso: string | null): string {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className="text-xs font-medium text-slate-800 text-right">{value}</span>
+      <span className="text-[13px] text-slate-500">{label}</span>
+      <span className="text-[13px] font-medium text-slate-800 text-right">{value}</span>
     </div>
   );
 }
@@ -76,7 +76,7 @@ export function UserDetailDrawer({
 
         <div className="px-6 py-5 space-y-5">
           {userQuery.isLoading && (
-            <p className="flex items-center gap-2 text-xs text-slate-500">
+            <p className="flex items-center gap-2 text-[13px] text-slate-500">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Loading the login record...
             </p>
@@ -84,11 +84,11 @@ export function UserDetailDrawer({
 
           {userQuery.isError && (
             <div className="rounded-xl border border-[#DDE5F0] bg-slate-50/60 p-4">
-              <p className="text-xs text-slate-600">This login could not be loaded.</p>
+              <p className="text-[13px] text-slate-600">This login could not be loaded.</p>
               <button
                 type="button"
                 onClick={() => void userQuery.refetch()}
-                className="mt-3 rounded-lg border border-[#DDE5F0] bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+                className="mt-3 rounded-lg border border-[#DDE5F0] bg-white px-3 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
               >
                 Try again
               </button>
@@ -100,25 +100,25 @@ export function UserDetailDrawer({
               <div className="flex flex-wrap items-center gap-1.5">
                 <span
                   className={cn(
-                    "inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                    "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
                     STATUS_BADGE[u.status] ?? "bg-slate-100 text-slate-600",
                   )}
                 >
                   {u.status}
                 </span>
                 {u.mfaEnabled && (
-                  <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-700">
+                  <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
                     email code at sign-in
                   </span>
                 )}
                 {u.mustChangePassword && (
-                  <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-700">
+                  <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
                     first login pending
                   </span>
                 )}
                 {u.lockedUntil !== null && (
                   <span
-                    className="inline-flex rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-medium text-rose-700"
+                    className="inline-flex rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700"
                     title="Too many wrong passwords; the lockout lifts by itself"
                   >
                     locked until {formatWhen(u.lockedUntil)}
@@ -163,12 +163,12 @@ export function UserDetailDrawer({
               </div>
 
               <div>
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                <p className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-slate-600">
                   <ShieldCheck className="h-3.5 w-3.5 text-[#2570D3]" />
                   Roles
                 </p>
                 {u.roles.length === 0 ? (
-                  <p className="rounded-xl border border-[#DDE5F0] bg-slate-50/60 p-4 text-xs text-slate-500">
+                  <p className="rounded-xl border border-[#DDE5F0] bg-slate-50/60 p-4 text-[13px] text-slate-500">
                     No roles yet - this login can sign in but sees nothing.
                   </p>
                 ) : (
@@ -178,8 +178,8 @@ export function UserDetailDrawer({
                         key={r.assignmentId}
                         className="rounded-xl border border-[#DDE5F0] bg-slate-50/60 px-4 py-2.5"
                       >
-                        <p className="text-xs font-medium text-slate-800">{r.name}</p>
-                        <p className="mt-0.5 text-[11px] text-slate-500">
+                        <p className="text-[13px] font-medium text-slate-800">{r.name}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">
                           {r.scopeType === "institution" ? "Whole school" : `One ${r.scopeType}`}
                           {r.validFrom ? ` · from ${r.validFrom}` : ""}
                           {r.validTo ? ` · until ${r.validTo}` : ""}

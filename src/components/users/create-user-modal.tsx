@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import { cn } from "cn";
 
 const input =
-  "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-[13px] text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400";
-const label = "block text-xs font-medium text-slate-600 mb-1";
+  "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400";
+const label = "block text-[13px] font-medium text-slate-600 mb-1";
 
 /** Random password that always satisfies "8+ chars, a letter and a number". */
 export function generatePassword(): string {
@@ -140,7 +140,7 @@ export function CreateUserModal({
               />
             </div>
           </div>
-          <p className="text-xs text-slate-500 -mt-2">
+          <p className="text-[13px] text-slate-500 -mt-2">
             Give at least one of username, email or phone - that is how they sign in.
           </p>
 
@@ -170,19 +170,19 @@ export function CreateUserModal({
                   setPassword(generatePassword());
                   setShowPassword(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
               >
                 <Shuffle className="h-3.5 w-3.5" />
                 Generate
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-[13px] text-slate-500">
               Share it with the person once - then they change it themselves.
             </p>
           </div>
 
           <div className="space-y-2">
-            <label className="flex items-start gap-2 text-[13px] text-slate-700">
+            <label className="flex items-start gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
                 checked={mustChange}
@@ -193,7 +193,7 @@ export function CreateUserModal({
             </label>
             <label
               className={cn(
-                "flex items-start gap-2 text-[13px]",
+                "flex items-start gap-2 text-sm",
                 email.trim() ? "text-slate-700" : "text-slate-400",
               )}
               title={email.trim() ? undefined : "Add an email address first"}
@@ -210,15 +210,15 @@ export function CreateUserModal({
           </div>
 
           <div className="rounded-xl border border-[#DDE5F0] bg-slate-50/60 p-3">
-            <p className="text-xs font-medium text-slate-600 mb-2">Roles at this school</p>
+            <p className="text-[13px] font-medium text-slate-600 mb-2">Roles at this school</p>
             {!canAssign ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-[13px] text-slate-500">
                 Roles can be added after creation by someone who assigns roles.
               </p>
             ) : rolesQuery.isLoading ? (
-              <p className="text-xs text-slate-400">Loading the role list...</p>
+              <p className="text-[13px] text-slate-400">Loading the role list...</p>
             ) : rolesQuery.isError ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-[13px] text-slate-500">
                 The role list could not be loaded. You can still create the login and add
                 roles later.
               </p>
@@ -236,7 +236,7 @@ export function CreateUserModal({
                         )
                       }
                       className={cn(
-                        "rounded-full px-2.5 py-1 text-xs font-medium border transition-colors",
+                        "rounded-full px-2.5 py-1 text-[13px] font-medium border transition-colors",
                         on
                           ? "border-[#2570D3] bg-[#2570D3] text-white"
                           : "border-[#DDE5F0] bg-white text-slate-600 hover:bg-slate-50",
@@ -255,14 +255,14 @@ export function CreateUserModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+              className="rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!hasIdentifier || password.length < 8 || mutation.isPending}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-[13px] font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-sm font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <UserPlus className="h-4 w-4" />
               {mutation.isPending ? "Creating..." : "Create login"}

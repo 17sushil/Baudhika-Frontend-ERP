@@ -69,7 +69,7 @@ function StatusPill({ status }: { status: UserStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
         STATUS_BADGE[status],
       )}
     >
@@ -97,7 +97,7 @@ function ConfirmStatusDialog({
         <h3 className="font-semibold text-sm text-slate-900">
           {suspending ? `Suspend ${displayName(user)}?` : `Reactivate ${displayName(user)}?`}
         </h3>
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-[13px] text-slate-500">
           {suspending
             ? "They are signed out everywhere and cannot sign in until someone reactivates this login."
             : "They can sign in again straight away, with the roles shown on their row."}
@@ -106,7 +106,7 @@ function ConfirmStatusDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+            className="rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
           >
             Cancel
           </button>
@@ -114,7 +114,7 @@ function ConfirmStatusDialog({
             type="button"
             onClick={onConfirm}
             className={cn(
-              "rounded-lg px-3.5 py-1.5 text-xs font-medium text-white shadow-xs transition-colors",
+              "rounded-lg px-3.5 py-1.5 text-[13px] font-medium text-white shadow-xs transition-colors",
               suspending
                 ? "bg-[#D64545] hover:bg-[#B93A3A]"
                 : "bg-[#2570D3] hover:bg-[#1C5BB0]",
@@ -207,7 +207,7 @@ export function UsersTableView() {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#DDE5F0] pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <div className="flex items-center gap-2 text-[13px] text-slate-500 mb-1">
             <Link
               href={schoolPath(slug, "/dashboard")}
               className="font-medium text-slate-700 hover:text-[#2570D3] hover:underline"
@@ -230,7 +230,7 @@ export function UsersTableView() {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-[13px] font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors"
           >
             <UserPlus className="h-4 w-4" />
             <span>Add user</span>
@@ -248,7 +248,7 @@ export function UsersTableView() {
               placeholder="Search by username, email or phone..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-1.5 text-[13px] text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400"
+              className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-1.5 text-sm text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400"
             />
           </div>
 
@@ -258,7 +258,7 @@ export function UsersTableView() {
               setStatus(e.target.value as "" | UserStatus);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 outline-hidden"
+            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 outline-hidden"
           >
             <option value="">All statuses</option>
             {STATUS_OPTIONS.map((s) => (
@@ -275,19 +275,19 @@ export function UsersTableView() {
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-[#DDE5F0] bg-slate-50/60">
-              <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 User
               </th>
-              <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Status
               </th>
-              <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Roles
               </th>
-              <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Last sign-in
               </th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Actions
               </th>
             </tr>
@@ -305,11 +305,11 @@ export function UsersTableView() {
             {usersQuery.isError && (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center">
-                  <p className="text-[13px] text-slate-500">We could not load the user list.</p>
+                  <p className="text-sm text-slate-500">We could not load the user list.</p>
                   <button
                     type="button"
                     onClick={() => void usersQuery.refetch()}
-                    className="mt-3 rounded-lg border border-[#DDE5F0] bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+                    className="mt-3 rounded-lg border border-[#DDE5F0] bg-white px-3 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
                   >
                     Try again
                   </button>
@@ -323,7 +323,7 @@ export function UsersTableView() {
                   <UsersRound className="mx-auto h-8 w-8 text-slate-300" />
                   {hasFilters ? (
                     <>
-                      <p className="mt-3 text-[13px] text-slate-500">
+                      <p className="mt-3 text-sm text-slate-500">
                         No users match these filters.
                       </p>
                       <button
@@ -333,7 +333,7 @@ export function UsersTableView() {
                           setStatus("");
                           setPage(1);
                         }}
-                        className="mt-3 rounded-lg border border-[#DDE5F0] bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+                        className="mt-3 rounded-lg border border-[#DDE5F0] bg-white px-3 py-1.5 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
                       >
                         Clear filters
                       </button>
@@ -343,7 +343,7 @@ export function UsersTableView() {
                       <p className="mt-3 text-sm font-medium text-slate-700">
                         No login accounts yet
                       </p>
-                      <p className="mt-1 text-[13px] text-slate-500">
+                      <p className="mt-1 text-sm text-slate-500">
                         Create the first one so staff can sign in.
                       </p>
                     </>
@@ -368,10 +368,10 @@ export function UsersTableView() {
                       title="Open the full login record"
                       className="group text-left"
                     >
-                      <p className="text-[13px] font-medium text-slate-900 group-hover:text-[#2570D3] group-hover:underline">
+                      <p className="text-sm font-medium text-slate-900 group-hover:text-[#2570D3] group-hover:underline">
                         {displayName(u)}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[13px] text-slate-500">
                         {[u.email, u.phone].filter(Boolean).join(" · ") || "username login"}
                       </p>
                     </button>
@@ -381,7 +381,7 @@ export function UsersTableView() {
                       <StatusPill status={u.status} />
                       {locked && (
                         <span
-                          className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"
+                          className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
                           title="Too many wrong passwords; the lockout lifts by itself"
                         >
                           locked
@@ -389,7 +389,7 @@ export function UsersTableView() {
                       )}
                       {u.mustChangePassword && (
                         <span
-                          className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700"
+                          className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700"
                           title="They still need to choose their own password"
                         >
                           first login pending
@@ -399,13 +399,13 @@ export function UsersTableView() {
                   </td>
                   <td className="px-4 py-3">
                     {u.roles.length === 0 ? (
-                      <span className="text-xs text-slate-400">No roles yet</span>
+                      <span className="text-[13px] text-slate-400">No roles yet</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {u.roles.map((r) => (
                           <span
                             key={r.assignmentId}
-                            className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+                            className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
                             title={
                               r.scopeType === "institution"
                                 ? r.validTo
@@ -421,7 +421,7 @@ export function UsersTableView() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-[13px] text-slate-500">
                     {formatWhen(u.lastLoginAt)}
                   </td>
                   <td className="px-4 py-3">
@@ -435,7 +435,7 @@ export function UsersTableView() {
                             ? "Add or remove roles"
                             : "Only staff who can assign roles may change them"
                         }
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
                       >
                         <ShieldCheck className="h-3.5 w-3.5" />
                         Roles
@@ -449,7 +449,7 @@ export function UsersTableView() {
                             ? "Set a new password for them"
                             : "Only staff who manage logins may reset passwords"
                         }
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#DDE5F0] bg-white px-2.5 py-1 text-[13px] font-medium text-slate-600 shadow-2xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                         Reset
@@ -472,7 +472,7 @@ export function UsersTableView() {
                                 : "Only staff who manage logins may change status"
                         }
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium shadow-2xs transition-colors",
+                          "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[13px] font-medium shadow-2xs transition-colors",
                           u.status === "active"
                             ? "border border-[#DDE5F0] bg-white text-[#D64545] hover:bg-rose-50"
                             : "border border-[#DDE5F0] bg-white text-emerald-700 hover:bg-emerald-50",
@@ -496,7 +496,7 @@ export function UsersTableView() {
       </div>
 
       {/* Pager */}
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-[13px] text-slate-500">
         <span>
           Showing {from}–{to} of {total} users · page {page} of {totalPages}
         </span>

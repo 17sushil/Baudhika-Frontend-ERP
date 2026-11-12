@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import { cn } from "cn";
 
 const input =
-  "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-[13px] text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400";
-const label = "block text-xs font-medium text-slate-600 mb-1";
+  "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-900 focus:border-[#2570D3] outline-hidden placeholder-slate-400";
+const label = "block text-[13px] font-medium text-slate-600 mb-1";
 
 /**
  * Add or revoke role assignments for one login. The catalogue and the campus
@@ -101,7 +101,7 @@ export function ManageRolesModal({
           <div>
             <p className={label}>Holds today</p>
             {user.roles.length === 0 ? (
-              <p className="text-xs text-slate-400">
+              <p className="text-[13px] text-slate-400">
                 No roles yet - this login can sign in but sees nothing.
               </p>
             ) : (
@@ -112,15 +112,15 @@ export function ManageRolesModal({
                     className="flex items-center justify-between rounded-lg border border-[#DDE5F0] bg-slate-50/60 px-3 py-2"
                   >
                     <div>
-                      <p className="text-[13px] font-medium text-slate-800">
+                      <p className="text-sm font-medium text-slate-800">
                         {r.name}
                         {r.scopeType !== "institution" && (
-                          <span className="ml-1 text-[11px] text-slate-500">
+                          <span className="ml-1 text-xs text-slate-500">
                             · one {r.scopeType}
                           </span>
                         )}
                       </p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         {r.scopeType === "institution" ? "Whole school" : "Branch scope"}
                         {r.validTo ? ` · until ${r.validTo}` : ""}
                       </p>
@@ -141,7 +141,7 @@ export function ManageRolesModal({
           </div>
 
           <div className="rounded-xl border border-[#DDE5F0] bg-slate-50/60 p-3 space-y-3">
-            <p className="text-xs font-medium text-slate-600">Add a role</p>
+            <p className="text-[13px] font-medium text-slate-600">Add a role</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={label}>Role</label>
@@ -207,7 +207,7 @@ export function ManageRolesModal({
                 grantMutation.isPending ||
                 revokeMutation.isPending
               }
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-[13px] font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-1.5 text-sm font-medium text-white shadow-xs hover:bg-[#1C5BB0] transition-colors disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <ShieldCheck className="h-4 w-4" />
               {grantMutation.isPending ? "Adding..." : "Add role"}
