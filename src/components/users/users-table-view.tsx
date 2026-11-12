@@ -29,6 +29,7 @@ import { cn } from "cn";
 import { CreateUserModal } from "./create-user-modal";
 import { ManageRolesModal } from "./manage-roles-modal";
 import { ResetPasswordModal } from "./reset-password-modal";
+import { UserDetailDrawer } from "./user-detail-drawer";
 
 const STATUS_OPTIONS: UserStatus[] = ["active", "suspended", "disabled"];
 
@@ -147,6 +148,7 @@ export function UsersTableView() {
   const [page, setPage] = React.useState(1);
 
   const [creating, setCreating] = React.useState(false);
+  const [detailId, setDetailId] = React.useState<string | null>(null);
   const [manageUser, setManageUser] = React.useState<User | null>(null);
   const [resetUser, setResetUser] = React.useState<User | null>(null);
   const [confirm, setConfirm] = React.useState<{ user: User; to: UserStatus } | null>(null);
@@ -360,10 +362,19 @@ export function UsersTableView() {
                   className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors"
                 >
                   <td className="px-4 py-3">
-                    <p className="text-[13px] font-medium text-slate-900">{displayName(u)}</p>
-                    <p className="text-xs text-slate-500">
-                      {[u.email, u.phone].filter(Boolean).join(" · ") || "username login"}
-                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setDetailId(u.id)}
+                      title="Open the full login record"
+                      className="group text-left"
+                    >
+                      <p className="text-[13px] font-medium text-slate-900 group-hover:text-[#2570D3] group-hover:underline">
+                        {displayName(u)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {[u.email, u.phone].filter(Boolean).join(" · ") || "username login"}
+                      </p>
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-1">
@@ -510,6 +521,10 @@ export function UsersTableView() {
           </button>
         </div>
       </div>
+
+      {detailId && (
+        <UserDetailDrawer userId={detailId} onClose={() => setDetailId(null)} />
+      )}
 
       {creating && (
         <CreateUserModal
