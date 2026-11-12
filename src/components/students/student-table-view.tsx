@@ -7,6 +7,7 @@ import {
   Plus,
   Download,
   Printer,
+  Upload,
   ChevronRight,
   ArrowUpDown,
   Users,
@@ -27,6 +28,7 @@ import type {
 import { useTenant } from "@/providers/tenant-provider";
 import { useHasPermission } from "@/store/session-store";
 import { AddStudentModal } from "./add-student-modal";
+import { ImportStudentsModal } from "./import-students-modal";
 import { StudentIdCardModal } from "./student-id-card-modal";
 import { toast } from "sonner";
 import { cn } from "cn";
@@ -101,6 +103,7 @@ export function StudentTableView() {
   const [sortAsc, setSortAsc] = React.useState(true);
 
   const [addModalOpen, setAddModalOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [idCardStudent, setIdCardStudent] = React.useState<StudentDetail | null>(null);
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -206,6 +209,17 @@ export function StudentTableView() {
             <Download className="h-3.5 w-3.5 text-slate-400" />
             <span>Export</span>
           </button>
+
+          {canCreate && (
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-2xs hover:bg-slate-50"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import from Excel</span>
+            </button>
+          )}
 
           {canCreate && (
             <button
@@ -473,6 +487,16 @@ export function StudentTableView() {
         Column sorting applies to the current page only - the API contract has no
         server-side sort parameter yet.
       </p>
+
+      {importOpen && (
+        <ImportStudentsModal
+          onClose={() => setImportOpen(false)}
+          onImported={() => {
+            setImportOpen(false);
+            void queryClient.invalidateQueries({ queryKey: ["students"] });
+          }}
+        />
+      )}
 
       <AddStudentModal
         open={addModalOpen}

@@ -369,6 +369,7 @@ export type StudentHealth = {
 export type CreateStudentInput = {
   person: {
     firstName: string;
+    middleName?: string | null;
     lastName?: string | null;
     gender: "male" | "female" | "other";
     dob?: string | null;
@@ -388,5 +389,10 @@ export type CreateStudentInput = {
   admissionDate: string;
   admissionType?: AdmissionType;
   emisId?: string | null;
+  /** Required by the server when admissionType is transfer_in. */
+  previousSchoolName?: string | null;
+  previousSchoolClass?: string | null;
+  previousTcNo?: string | null;
+  remarks?: string | null;
   hasSpecialNeeds?: boolean;
 };
