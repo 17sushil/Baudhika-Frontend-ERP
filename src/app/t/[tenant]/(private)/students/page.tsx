@@ -1,10 +1,5 @@
 "use client";
 
-// Opt out of Next's instant-navigation validation for this segment: in dev it
-// can drop the segment and fall back to a full reload, which used to tear the
-// in-memory session and show permission gates to a signed-in admin.
-export const instant = false;
-
 import { Users } from "lucide-react";
 import { StudentTableView } from "@/components/students/student-table-view";
 import { useHasPermission } from "@/store/session-store";
