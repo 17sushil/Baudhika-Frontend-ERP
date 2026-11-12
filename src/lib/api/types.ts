@@ -63,6 +63,20 @@ export type Role = {
   scopeId: string | null;
 };
 
+/** GET /roles catalogue entry (role.read). Broadest roles first. */
+export type RoleCatalog = {
+  id: string;
+  code: string;
+  name: string;
+  isSystem: boolean;
+  requiresMfa: boolean;
+  permissions: string[];
+  /** Whether the signed-in user may edit or assign this role. */
+  manageable?: boolean;
+  /** Users currently holding this role in any scope. */
+  userCount?: number;
+};
+
 /** GET /auth/me (school plane). */
 export type SchoolMe = {
   id: string;

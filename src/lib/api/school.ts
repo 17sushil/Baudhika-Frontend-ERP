@@ -1,5 +1,6 @@
 import { del, get, patch, post } from "./client";
 import type {
+  RoleCatalog,
   CampusRef,
   CreateStudentInput,
   CreateUserInput,
@@ -31,6 +32,11 @@ export function schoolMe() {
 // --- users -----------------------------------------------------------------
 // Permission codes come straight from the API reference; the server enforces
 // them on every call, and the UI hides what it cannot do anyway.
+
+/** GET /roles - the role catalogue, broadest first. Needs role.read. */
+export function listRoles() {
+  return get<RoleCatalog[]>("/roles");
+}
 
 /** GET /users - paged, newest first. Needs user.read. */
 export function listUsers(params: UserListParams = {}) {
