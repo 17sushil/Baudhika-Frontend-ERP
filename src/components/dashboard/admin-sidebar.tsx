@@ -17,6 +17,7 @@ import {
   ChevronRight,
   School,
   Users,
+  Briefcase,
   X,
 } from "lucide-react";
 import { cn } from "cn";
@@ -30,6 +31,7 @@ export interface NavItem {
 const NAV_MODULES: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Students", href: "/students", icon: GraduationCap },
+  { title: "Staff", href: "/staff", icon: Briefcase },
   { title: "Academics", href: "/academics", icon: BookOpen },
   { title: "Users", href: "/users", icon: Users },
   { title: "Attendance", href: "/attendance", icon: CalendarCheck },
