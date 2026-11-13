@@ -22,6 +22,7 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
+  X,
 } from "lucide-react";
 import {
   MOCK_EXAMS,
@@ -52,6 +53,13 @@ function ExaminationsInner() {
   const [questions, setQuestions] = React.useState<QuestionBankItem[]>(MOCK_QUESTION_BANK);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+  const [selectedStudentForMarksheet, setSelectedStudentForMarksheet] = React.useState<StudentExamMark | null>(null);
+  const [isAddQuestionOpen, setIsAddQuestionOpen] = React.useState(false);
+  const [newQuestionText, setNewQuestionText] = React.useState("");
+  const [newQuestionSubject, setNewQuestionSubject] = React.useState("Mathematics");
+  const [newQuestionTopic, setNewQuestionTopic] = React.useState("Algebra & Linear Equations");
+  const [newQuestionMarks, setNewQuestionMarks] = React.useState(5);
+  const [newQuestionDifficulty, setNewQuestionDifficulty] = React.useState<"Easy" | "Medium" | "Hard">("Medium");
 
   // Form state for "Create Exam" (Matches Page 8 Mockup)
   const [formExamName, setFormExamName] = React.useState("Mid Term Exam");
@@ -91,6 +99,25 @@ function ExaminationsInner() {
     setToastMessage(`Exam "${formExamName} (${formSubject})" created successfully!`);
     setTimeout(() => setToastMessage(null), 4000);
     updateTab("schedules");
+  };
+
+  const handleAddQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newQuestionText.trim()) return;
+    const newQ: QuestionBankItem = {
+      id: `qb-${Date.now()}`,
+      grade: "Grade 8",
+      subject: newQuestionSubject,
+      topic: newQuestionTopic,
+      marks: Number(newQuestionMarks),
+      difficulty: newQuestionDifficulty,
+      questionText: newQuestionText.trim(),
+    };
+    setQuestions([newQ, ...questions]);
+    setIsAddQuestionOpen(false);
+    setNewQuestionText("");
+    setToastMessage("Question added to repository successfully!");
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleMarkChange = (rollNo: string, field: "theory" | "practical", val: number) => {
@@ -608,7 +635,7 @@ function ExaminationsInner() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => setSelectedStudentForMarksheet(st)}
                     className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
                   >
                     <Printer className="w-3.5 h-3.5" />
@@ -628,7 +655,8 @@ function ExaminationsInner() {
             <h3 className="text-sm font-bold text-slate-900">Question Bank Repository</h3>
             <button
               type="button"
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold"
+              onClick={() => setIsAddQuestionOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Question
@@ -654,6 +682,295 @@ function ExaminationsInner() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Official Marksheet Preview */}
+      {selectedStudentForMarksheet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            {/* Header / Letterhead */}
+            <div className="border-b-2 border-slate-900 pb-4 text-center">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono font-semibold text-slate-500 uppercase">
+                  Terminal Progress Report
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForMarksheet(null)}
+                  className="text-slate-400 hover:text-slate-600 p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900 uppercase">
+                SUNRISE SECONDARY ENGLISH BOARDING SCHOOL
+              </h2>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Affiliated to National Examination Board (NEB) &bull; Reg: NEB-AFF-88421
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Shantinagar, Ward 31, Kathmandu Metropolitan, Bagmati Province
+              </p>
+              <div className="mt-3 inline-block bg-slate-900 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider">
+                Terminal Marksheet &bull; Academic Year 2024 - 2025
+              </div>
+            </div>
+
+            {/* Student Metadata Card */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200 mt-4 text-xs">
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-semibold">Student Name</span>
+                <span className="font-bold text-slate-900 text-sm">{selectedStudentForMarksheet.studentName}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-semibold">Roll Number</span>
+                <span className="font-mono font-bold text-slate-900 text-sm">{selectedStudentForMarksheet.rollNo}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-semibold">Admission No</span>
+                <span className="font-mono font-bold text-slate-900">{selectedStudentForMarksheet.admissionNo}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-semibold">Class & Section</span>
+                <span className="font-bold text-slate-900">Grade 8 - Section A</span>
+              </div>
+            </div>
+
+            {/* Subject Marks Table */}
+            <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/80 text-slate-700 font-bold uppercase text-[10px] border-b border-slate-200">
+                    <th className="py-2.5 px-3">Subject</th>
+                    <th className="py-2.5 px-2 text-center">Credit</th>
+                    <th className="py-2.5 px-2 text-center">Theory (75)</th>
+                    <th className="py-2.5 px-2 text-center">Practical (25)</th>
+                    <th className="py-2.5 px-2 text-center">Total (100)</th>
+                    <th className="py-2.5 px-2 text-center">Grade</th>
+                    <th className="py-2.5 px-2 text-center">GP</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                  <tr>
+                    <td className="py-2 px-3 font-semibold text-slate-900">Mathematics</td>
+                    <td className="py-2 px-2 text-center font-mono">4.0</td>
+                    <td className="py-2 px-2 text-center font-mono">{selectedStudentForMarksheet.theoryMarks}</td>
+                    <td className="py-2 px-2 text-center font-mono">{selectedStudentForMarksheet.practicalMarks}</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">{selectedStudentForMarksheet.totalMarks}</td>
+                    <td className="py-2 px-2 text-center font-bold text-purple-700">{selectedStudentForMarksheet.grade}</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">4.0</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-semibold text-slate-900">General Science</td>
+                    <td className="py-2 px-2 text-center font-mono">4.0</td>
+                    <td className="py-2 px-2 text-center font-mono">68</td>
+                    <td className="py-2 px-2 text-center font-mono">24</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">92</td>
+                    <td className="py-2 px-2 text-center font-bold text-purple-700">A+</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">4.0</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-semibold text-slate-900">English Language</td>
+                    <td className="py-2 px-2 text-center font-mono">4.0</td>
+                    <td className="py-2 px-2 text-center font-mono">64</td>
+                    <td className="py-2 px-2 text-center font-mono">22</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">86</td>
+                    <td className="py-2 px-2 text-center font-bold text-emerald-700">A</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">3.6</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-semibold text-slate-900">Social Studies</td>
+                    <td className="py-2 px-2 text-center font-mono">4.0</td>
+                    <td className="py-2 px-2 text-center font-mono">62</td>
+                    <td className="py-2 px-2 text-center font-mono">21</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">83</td>
+                    <td className="py-2 px-2 text-center font-bold text-emerald-700">A</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">3.6</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-semibold text-slate-900">Nepali</td>
+                    <td className="py-2 px-2 text-center font-mono">4.0</td>
+                    <td className="py-2 px-2 text-center font-mono">60</td>
+                    <td className="py-2 px-2 text-center font-mono">22</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">82</td>
+                    <td className="py-2 px-2 text-center font-bold text-emerald-700">A</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">3.6</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-semibold text-slate-900">Computer Science</td>
+                    <td className="py-2 px-2 text-center font-mono">3.0</td>
+                    <td className="py-2 px-2 text-center font-mono">70</td>
+                    <td className="py-2 px-2 text-center font-mono">25</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">95</td>
+                    <td className="py-2 px-2 text-center font-bold text-purple-700">A+</td>
+                    <td className="py-2 px-2 text-center font-mono font-bold">4.0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Performance Summary Box */}
+            <div className="grid grid-cols-4 gap-2 mt-3 bg-blue-50/60 p-3 rounded-xl border border-blue-200/60 text-center text-xs">
+              <div>
+                <span className="text-[10px] text-blue-800 uppercase font-semibold">Total Marks</span>
+                <div className="font-mono font-bold text-blue-900 text-sm">
+                  {selectedStudentForMarksheet.totalMarks + 438} / 600
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] text-blue-800 uppercase font-semibold">Percentage</span>
+                <div className="font-mono font-bold text-blue-900 text-sm">
+                  {Math.round(((selectedStudentForMarksheet.totalMarks + 438) / 600) * 100)}%
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] text-blue-800 uppercase font-semibold">Grade Point (GPA)</span>
+                <div className="font-mono font-bold text-blue-900 text-sm">3.80</div>
+              </div>
+              <div>
+                <span className="text-[10px] text-blue-800 uppercase font-semibold">Result Status</span>
+                <div className="font-bold text-emerald-700 text-sm">PASSED</div>
+              </div>
+            </div>
+
+            {/* Signatures */}
+            <div className="grid grid-cols-3 gap-6 pt-10 text-center text-[11px] text-slate-600">
+              <div className="border-t border-slate-300 pt-1.5">
+                <span className="font-semibold text-slate-800 block">Ms. Neha Sharma</span>
+                Class Teacher
+              </div>
+              <div className="border-t border-slate-300 pt-1.5">
+                <span className="font-semibold text-slate-800 block">Exam Controller</span>
+                Academic Section
+              </div>
+              <div className="border-t border-slate-300 pt-1.5">
+                <span className="font-semibold text-slate-800 block">Dr. K.P. Adhikari</span>
+                Principal (Institutional Seal)
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-5 border-t border-slate-200 mt-6">
+              <button
+                type="button"
+                onClick={() => setSelectedStudentForMarksheet(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 inline-flex items-center gap-1.5 shadow-xs"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Print / Save PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Question to Bank */}
+      {isAddQuestionOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="text-base font-bold text-slate-900">Add Question to Repository</h3>
+              <button
+                type="button"
+                onClick={() => setIsAddQuestionOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddQuestion} className="space-y-4 pt-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Subject</label>
+                <select
+                  value={newQuestionSubject}
+                  onChange={(e) => setNewQuestionSubject(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="Mathematics">Mathematics</option>
+                  <option value="General Science">General Science</option>
+                  <option value="English">English</option>
+                  <option value="Social Studies">Social Studies</option>
+                  <option value="Nepali">Nepali</option>
+                  <option value="Computer Science">Computer Science</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Topic / Unit</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Linear Equations / Thermodynamics"
+                  value={newQuestionTopic}
+                  onChange={(e) => setNewQuestionTopic(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Allocated Marks</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={newQuestionMarks}
+                    onChange={(e) => setNewQuestionMarks(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Difficulty</label>
+                  <select
+                    value={newQuestionDifficulty}
+                    onChange={(e) => setNewQuestionDifficulty(e.target.value as any)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Question Prompt</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Enter the full question text with any formulas or constraints..."
+                  value={newQuestionText}
+                  onChange={(e) => setNewQuestionText(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsAddQuestionOpen(false)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                >
+                  Save to Repository
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

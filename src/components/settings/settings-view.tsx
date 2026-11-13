@@ -24,8 +24,8 @@ function SettingsInner() {
   const searchParams = useSearchParams();
 
   const rawTab = searchParams.get("tab") || "institution";
-  const activeTab: "institution" | "academic" | "grading" | "integrations" | "security" =
-    ["institution", "academic", "grading", "integrations", "security"].includes(rawTab)
+  const activeTab: "institution" | "academic" | "grading" | "integrations" | "organization" | "security" =
+    ["institution", "academic", "grading", "integrations", "organization", "security"].includes(rawTab)
       ? (rawTab as any)
       : "institution";
 
@@ -42,6 +42,19 @@ function SettingsInner() {
   const [smsGatewayActive, setSmsGatewayActive] = React.useState(true);
   const [biometricSyncActive, setBiometricSyncActive] = React.useState(true);
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+
+  // Number sequences & campuses (matching organization.controller.ts)
+  const [sequences, setSequences] = React.useState([
+    { code: "admission_no", name: "Student Admission No", prefix: "ADM-", padding: 5, yearlyReset: true, currentCounter: 142 },
+    { code: "employee_code", name: "Staff Employee Code", prefix: "EMP-", padding: 4, yearlyReset: false, currentCounter: 38 },
+    { code: "fee_receipt", name: "Fee Invoice / Receipt", prefix: "REC-", padding: 5, yearlyReset: true, currentCounter: 422 },
+    { code: "exam_roll_no", name: "Exam Roll Number", prefix: "RN-", padding: 3, yearlyReset: true, currentCounter: 85 },
+  ]);
+
+  const [campuses, setCampuses] = React.useState([
+    { id: "cam-01", code: "MAIN", name: "Sunrise Main Campus", address: "Shantinagar, Kathmandu", isPrimary: true },
+    { id: "cam-02", code: "EAST", name: "Sunrise East Wing Branch", address: "Kumaripati, Lalitpur", isPrimary: false },
+  ]);
 
   const updateTab = (newTab: typeof activeTab) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -145,6 +158,19 @@ function SettingsInner() {
           >
             <CreditCard className="w-4 h-4" />
             Gateways & Terminals
+          </button>
+
+          <button
+            type="button"
+            onClick={() => updateTab("organization")}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              activeTab === "organization"
+                ? "bg-blue-50 text-blue-700 border border-blue-200/70"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            Campuses & Code Series
           </button>
 
           <button
@@ -394,6 +420,174 @@ function SettingsInner() {
               <span className="px-3 py-1.5 rounded-lg font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 Active
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: ORGANIZATION & CODE SEQUENCES (organization.controller.ts) */}
+      {activeTab === "organization" && (
+        <div className="space-y-6">
+          {/* Section 1: Number Sequences */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs text-xs space-y-4">
+            <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Code Series & Identifier Number Sequences</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Configure prefixes, zero padding, and annual resets for admissions, employee IDs, and receipts.
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                organization.controller.ts
+              </span>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 text-slate-700 font-bold uppercase text-[10px] border-b border-slate-200">
+                    <th className="py-2.5 px-4">Series Name</th>
+                    <th className="py-2.5 px-3">Internal Code</th>
+                    <th className="py-2.5 px-3">Prefix</th>
+                    <th className="py-2.5 px-3 text-center">Padding</th>
+                    <th className="py-2.5 px-3 text-center">Yearly Reset</th>
+                    <th className="py-2.5 px-3 text-center">Current Counter</th>
+                    <th className="py-2.5 px-4">Live Preview Format</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {sequences.map((seq, idx) => {
+                    const yearStr = seq.yearlyReset ? `${new Date().getFullYear()}-` : "";
+                    const sampleNo = String(seq.currentCounter + 1).padStart(seq.padding, "0");
+                    const previewStr = `${seq.prefix}${yearStr}${sampleNo}`;
+
+                    return (
+                      <tr key={seq.code} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-slate-900">{seq.name}</td>
+                        <td className="py-3 px-3 font-mono text-slate-500">{seq.code}</td>
+                        <td className="py-3 px-3">
+                          <input
+                            type="text"
+                            value={seq.prefix}
+                            onChange={(e) => {
+                              const next = [...sequences];
+                              next[idx].prefix = e.target.value;
+                              setSequences(next);
+                            }}
+                            className="w-20 px-2 py-1 rounded-lg border border-slate-200 bg-white font-mono font-bold text-slate-800 text-xs focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <input
+                            type="number"
+                            min={2}
+                            max={8}
+                            value={seq.padding}
+                            onChange={(e) => {
+                              const next = [...sequences];
+                              next[idx].padding = Number(e.target.value);
+                              setSequences(next);
+                            }}
+                            className="w-14 px-2 py-1 rounded-lg border border-slate-200 bg-white font-mono font-bold text-center text-xs focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          {seq.yearlyReset ? (
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              Yes (Annual)
+                            </span>
+                          ) : (
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                              Sequential
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono font-bold text-slate-700">
+                          {seq.currentCounter}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="inline-block px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold text-xs">
+                            {previewStr}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setToastMessage("Number sequence formats saved successfully!");
+                  setTimeout(() => setToastMessage(null), 3500);
+                }}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs"
+              >
+                Save Sequence Rules
+              </button>
+            </div>
+          </div>
+
+          {/* Section 2: Branch Campuses */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs text-xs space-y-4">
+            <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Institutional Branch Campuses</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Multi-campus locations supporting branch-isolated user logins and departmental faculties.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newCam = {
+                    id: `cam-0${campuses.length + 1}`,
+                    code: `BRANCH-${campuses.length + 1}`,
+                    name: `Sunrise Branch Campus ${campuses.length + 1}`,
+                    address: "Pokhara Sub-Metropolitan, Kaski",
+                    isPrimary: false,
+                  };
+                  setCampuses([...campuses, newCam]);
+                  setToastMessage(`Branch ${newCam.name} registered.`);
+                  setTimeout(() => setToastMessage(null), 3500);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs shadow-2xs"
+              >
+                <Building className="w-3.5 h-3.5 text-blue-600" />
+                Add Branch Campus
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {campuses.map((cam) => (
+                <div
+                  key={cam.id}
+                  className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-200 transition-colors shadow-2xs space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px]">
+                      {cam.code}
+                    </span>
+                    {cam.isPrimary ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Primary Campus
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                        Branch Campus
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-sm">{cam.name}</h4>
+                  <p className="text-slate-500 text-xs flex items-center gap-1">
+                    <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    {cam.address}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

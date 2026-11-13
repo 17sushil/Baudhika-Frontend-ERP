@@ -18,6 +18,7 @@ import {
   School,
   Users,
   Briefcase,
+  HeartHandshake,
   X,
 } from "lucide-react";
 import { cn } from "cn";
@@ -31,6 +32,7 @@ export interface NavItem {
 const NAV_MODULES: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Students", href: "/students", icon: GraduationCap },
+  { title: "Guardians", href: "/guardians", icon: HeartHandshake },
   { title: "Staff", href: "/staff", icon: Briefcase },
   { title: "Academics", href: "/academics", icon: BookOpen },
   { title: "Users", href: "/users", icon: Users },
