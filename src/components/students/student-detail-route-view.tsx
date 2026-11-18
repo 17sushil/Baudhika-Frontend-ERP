@@ -77,5 +77,5 @@ export function StudentDetailRouteView({
     );
   }
 
-  return <StudentProfilePageView student={student} onBack={handleBack} />;
+  return <StudentProfilePageView studentId={studentId} onBack={handleBack} />;
 }

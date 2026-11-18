@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle } from "lucide-react";
 import { restoreSession } from "@/lib/api/auth";
+import { schoolMe } from "@/lib/api/school";
 import { PasswordChangeRequired } from "@/components/auth/password-change-required";
 import { currentTenantSlug, schoolPath } from "@/lib/tenant-slug";
 import { useSession } from "@/store/session-store";
@@ -65,6 +66,29 @@ export function RequireAuth({
         );
         return;
       }
+
+      // The refresh cookie survives a reload; the user object does not.
+      // Re-mint the identity card (name, roles, permissions) from /auth/me
+      // so a reloaded page knows WHO holds the key, not just that a key exists.
+      if (plane === "school" && !useSession.getState().user) {
+        try {
+          const me = await schoolMe();
+          if (!alive) return;
+          useSession.getState().setUser({
+            id: me.id,
+            email: me.email,
+            username: me.username,
+            name: me.username ?? me.email,
+            roles: me.roles,
+            permissions: me.permissions,
+            tenantSlug: me.tenant.slug,
+            mustChangePassword: me.mustChangePassword,
+          });
+        } catch {
+          // /auth/me unreachable: the gates below will explain honestly.
+        }
+      }
+
       setReady(true);
     })();
     return () => {
