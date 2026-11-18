@@ -266,3 +266,72 @@ Route: `/t/<slug>/users`, guarded by the `(private)` layout. Permission codes ga
 the controls client-side; the server enforces them regardless. List envelope is
 `{ items, total, page, limit }` - the `Page<T>` type in `types.ts` models it for
 every future module. `patch` verb helper added to `api/client.ts`.
+
+## 14. Security audit of merged Stage work (c8f5a7c) + hardening
+
+| # | Finding | Severity | Disposition |
+|---|---|---|---|
+| 1 | `tenant.ts` catch fabricated an **active** tenant for any slug when the backend was unreachable - in production, incl. suspended/unknown schools | Medium | **Fixed**: prod returns null; dev-only fallback |
+| 2 | Chat widget = third-party script (supply-chain XSS) dropping Snowplow/OneTrust cookies | Medium | **Mitigated**: promo routes only, prod CSP pins the single script host, `NEXT_PUBLIC_CHAT_WIDGET=disabled` kill switch; recommend self-hosting the bundle later |
+| 3 | No security headers: admin UI frameable (clickjacking), MIME sniffing, referrer leaks | Medium | **Fixed**: nosniff, SAMEORIGIN, Referrer-Policy, Permissions-Policy always; HSTS + CSP in prod |
+| 4 | CSS injection sinks: `promotional/styles.tsx` (static strings) and `tenant-theme-style.tsx` (hex-sanitized) | Low | **Accepted**: no dynamic un-sanitized input reaches either |
+| 5 | Unsplash hotlinks (IP/referrer privacy, availability) | Low | **Accepted**: asset choice, not an auth risk; self-host when branding allows |
+| 6 | Token/password leakage, stray localStorage, eval, unsafe `target=_blank` in new UI | - | **Clean**: none found |
+
+CSP is production-only by design (dev overlay/HMR need eval + ws). `script-src`
+keeps `'unsafe-inline'` because next-themes injects an inline script; the upgrade
+path is per-request nonces. `connect-src 'self' + widget host` is the exfil wall.
+
+## 15. Students module (real API, dynamic routing)
+
+Replaces the design-prototype mock table. Filters mirror the backend exactly:
+`search` (name contains / exact admission no / EMIS id), `status` (6 enums),
+`campusId`, `admissionType`, plus `page`/`limit`. Prototype-only filters
+(grade, section, fee status) do not exist server-side and were removed.
+
+| Endpoint | Client fn | UI |
+|---|---|---|
+| `GET /students` | `listStudents` | `components/students/students-table.tsx` |
+| `GET /students/{id}` | `getStudent` | `students/[studentId]/page.tsx` (dynamic route) |
+| `GET /students/{id}/status-history` | `getStudentStatusHistory` | profile timeline |
+| `GET /students/{id}/health` | `getStudentHealth` | profile panel, gated `student.health.read`, audited |
+| `GET /campuses` | `listCampuses` | campus filter + admission form |
+| `POST /students` | `createStudent` | `components/students/add-student-form.tsx` |
+
+Navigation performance: rows are `next/link` (route prefetch), the list query
+uses `placeholderData: keepPreviousData` (no table flash on filter/page
+change), row hover prefetches the detail query, and the root QueryClient's
+`staleTime: 60s` makes back-navigation instant from cache. Profiles are URLs,
+not drawer state, so back/forward and sharing work.
+
+"Bucket": no bucket concept exists in this API. The nearest relatives are the
+KPI status buckets (`/dashboard/kpis`), future file storage behind
+`person.photoFileId` (permission text mentions uploaded documents), and
+Next/react-query prefetching - which is what was implemented here. If a
+storage-bucket endpoint lands later, it belongs in a files module, not here.
+
+## 16. Students UI on Ritik's design, real data (supersedes §15 stopgaps)
+
+The directory, profile, admit wizard and ID card are Ritik's components with
+the mock array removed as a data source. Every read/write goes through the
+students API; nothing renders invented values.
+
+| Component | Endpoint(s) | Notes |
+|---|---|---|
+| `student-table-view.tsx` | `GET /students`, `GET /campuses` | server-side search/status/admissionType/campusId + paging (8/page); sort is current-page only (no contract param) with a visible note; rows are `next/link`; hover prefetches detail; printer icon fetches detail then opens ID card |
+| `student-profile-page-view.tsx` | `GET /students/{id}`, `.../status-history`, `.../health` | tabs without a backend (academic/documents/fees/attendance) show honest "arrives with module" states and disabled stubs with tooltips; health gated `student.health.read`, audit-logged; sensitive person fields gated `person.sensitive.read` |
+| `add-student-modal.tsx` | `POST /students`, `GET /campuses` | 4 steps: person / enrolment / contacts+address / confirm; server generates admissionNo; starts as applicant |
+| `student-id-card-modal.tsx` | (uses detail already fetched) | grade/section/roll print as dashes until the academics module exists |
+
+Decisions recorded with the product owner: unbuilt sections use honest empty
+states (not demo data); contract-unsupported controls are disabled with
+reasons (not fake success toasts); bulk selection removed until a bulk
+endpoint exists; Export disabled until an export endpoint exists.
+
+My §15 stopgap components (`students-table.tsx`, `student-profile.tsx`,
+`add-student-form.tsx`) are now dead code - delete in the mock-cleanup PR
+together with Ritik's unused mock files.
+
+Test hygiene (backend): `npm run cleanup:test-students` empties student test
+rows in every tenant while keeping tables, permission codes and campuses.
+Admission numbers restart at 0001 afterwards.
