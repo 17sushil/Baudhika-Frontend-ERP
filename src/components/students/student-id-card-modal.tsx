@@ -1,16 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { Printer, X, Download, School, QrCode } from "lucide-react";
-import type { Student } from "./student-types";
+import { Printer, X, School, QrCode } from "lucide-react";
+import type { StudentDetail } from "@/lib/api/types";
 import { useOptionalTenant } from "@/providers/tenant-provider";
 import { toast } from "sonner";
 
 interface StudentIdCardModalProps {
-  student: Student | null;
+  student: StudentDetail | null;
   onClose: () => void;
 }
 
+/**
+ * Ritik's printable card, fed by GET /students/{id}. Grade, section and roll
+ * number print as dashes: they belong to the academics module, which has no
+ * backend yet. An ID card must never invent a roll number.
+ */
 export function StudentIdCardModal({ student, onClose }: StudentIdCardModalProps) {
   const tenantCtx = useOptionalTenant();
   const schoolName = tenantCtx?.tenant?.name ?? "Baudhika Academy";
@@ -21,6 +26,12 @@ export function StudentIdCardModal({ student, onClose }: StudentIdCardModalProps
     window.print();
     toast.success("Printing student identity card");
   };
+
+  const emergencyPhone =
+    student.guardians.find((g) => g.isEmergencyContact)?.primaryPhone ??
+    student.guardians[0]?.primaryPhone ??
+    student.person.contacts.find((c) => c.type === "phone")?.value ??
+    null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
@@ -50,33 +61,36 @@ export function StudentIdCardModal({ student, onClose }: StudentIdCardModalProps
             <div className="bg-[#12294D] text-white p-3 text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <School className="h-4 w-4 text-[#2570D3]" />
-                <span className="font-bold text-xs tracking-wide">
-                  {schoolName}
-                </span>
+                <span className="font-bold text-xs tracking-wide">{schoolName}</span>
               </div>
               <p className="text-[10px] text-white/70">
-                {student.campusName}
+                {student.campus?.name ?? "Main Campus"}
               </p>
             </div>
 
             {/* Photo & Badges */}
             <div className="p-4 flex flex-col items-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#2570D3]/10 border-2 border-[#2570D3] text-[#2570D3] text-xl font-bold mb-3 shadow-xs">
-                {student.fullName.slice(0, 2).toUpperCase()}
+                {student.person.displayName.slice(0, 2).toUpperCase()}
               </div>
 
               <h4 className="text-base font-bold text-slate-900 text-center">
-                {student.fullName}
+                {student.person.displayName}
               </h4>
-              <span className="mt-0.5 rounded-full bg-[#2570D3]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#2570D3]">
-                {student.grade} - Section {student.section}
+              <span
+                className="mt-0.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500"
+                title="Grade and section arrive with the academics module"
+              >
+                Grade &amp; section: — (academics module)
               </span>
 
               {/* Grid Metadata */}
               <div className="mt-4 w-full grid grid-cols-2 gap-2 text-[11px] border-t border-b border-slate-100 py-2.5">
                 <div>
                   <span className="text-slate-400">Roll number:</span>
-                  <p className="font-semibold text-slate-800">{student.rollNo}</p>
+                  <p className="font-semibold text-slate-400" title="Arrives with the academics module">
+                    —
+                  </p>
                 </div>
                 <div>
                   <span className="text-slate-400">Admission ID:</span>
@@ -86,12 +100,14 @@ export function StudentIdCardModal({ student, onClose }: StudentIdCardModalProps
                 </div>
                 <div>
                   <span className="text-slate-400">Blood group:</span>
-                  <p className="font-semibold text-slate-800">{student.bloodGroup}</p>
+                  <p className="font-semibold text-slate-800">
+                    {student.person.bloodGroup ?? "—"}
+                  </p>
                 </div>
                 <div>
                   <span className="text-slate-400">Emergency:</span>
                   <p className="font-semibold text-slate-800 text-[10px]">
-                    {student.guardians[0]?.phone ?? "N/A"}
+                    {emergencyPhone ?? "N/A"}
                   </p>
                 </div>
               </div>
@@ -101,7 +117,9 @@ export function StudentIdCardModal({ student, onClose }: StudentIdCardModalProps
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <QrCode className="h-7 w-7 text-slate-700" />
                   <span className="text-[9px] font-mono leading-tight">
-                    VALID UNTIL<br />CHAITRA 2083
+                    VALID UNTIL
+                    <br />
+                    CHAITRA 2083
                   </span>
                 </div>
                 <div className="text-right">

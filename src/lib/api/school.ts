@@ -1,9 +1,17 @@
 import { del, get, patch, post } from "./client";
 import type {
+  RoleCatalog,
+  CampusRef,
+  CreateStudentInput,
   CreateUserInput,
   GrantRoleInput,
   Page,
   SchoolMe,
+  StudentDetail,
+  StudentHealth,
+  StudentListItem,
+  StudentListParams,
+  StudentStatusEntry,
   User,
   UserListParams,
   UserStatus,
@@ -24,6 +32,11 @@ export function schoolMe() {
 // --- users -----------------------------------------------------------------
 // Permission codes come straight from the API reference; the server enforces
 // them on every call, and the UI hides what it cannot do anyway.
+
+/** GET /roles - the role catalogue, broadest first. Needs role.read. */
+export function listRoles() {
+  return get<RoleCatalog[]>("/roles");
+}
 
 /** GET /users - paged, newest first. Needs user.read. */
 export function listUsers(params: UserListParams = {}) {
@@ -64,4 +77,42 @@ export function assignUserRole(id: string, input: GrantRoleInput) {
 /** DELETE /users/{id}/roles/{assignmentId}. The last school-wide principal stays. */
 export function removeUserRole(id: string, assignmentId: string) {
   return del<User>(`/users/${id}/roles/${assignmentId}`);
+}
+
+// --- campuses & students ---------------------------------------------------
+
+/**
+ * GET /campuses - the dropdown source for campus filters and admission.
+ * The team endpoint returns a bare array (not a Page) and its query DTO
+ * whitelists only isActive/kind, so we send no params and normalise here.
+ */
+export function listCampuses() {
+  return get<CampusRef[] | Page<CampusRef>>("/campuses").then((r) =>
+    Array.isArray(r) ? { items: r, total: r.length, page: 1, limit: 100 } : r,
+  );
+}
+
+/** GET /students - paged; search = name contains or exact admission/EMIS id. */
+export function listStudents(params: StudentListParams = {}) {
+  return get<Page<StudentListItem>>("/students", { params });
+}
+
+/** GET /students/{id} - person, contacts, addresses and guardians in one call. */
+export function getStudent(id: string) {
+  return get<StudentDetail>(`/students/${id}`);
+}
+
+/** GET /students/{id}/status-history - append-only timeline. */
+export function getStudentStatusHistory(id: string) {
+  return get<StudentStatusEntry[]>(`/students/${id}/status-history`);
+}
+
+/** GET /students/{id}/health - sensitive; needs student.health.read; audited. */
+export function getStudentHealth(id: string) {
+  return get<StudentHealth>(`/students/${id}/health`);
+}
+
+/** POST /students - 201; admissionNo generated; starts as applicant. */
+export function createStudent(input: CreateStudentInput) {
+  return post<StudentDetail>("/students", input);
 }
