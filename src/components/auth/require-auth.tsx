@@ -26,7 +26,7 @@ export function RequireAuth({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [ready, setReady] = useState(process.env.NODE_ENV !== "production");
+  const [ready, setReady] = useState(false);
 
   const slug = useSession((s) => s.slug) ?? currentTenantSlug();
   const mustChangePassword = useSession((s) => s.user?.mustChangePassword === true);
@@ -38,29 +38,6 @@ export function RequireAuth({
       if (!alive) return;
 
       if (!useSession.getState().accessToken) {
-        if (process.env.NODE_ENV !== "production") {
-          const session = useSession.getState();
-          session.setPlane(plane);
-          session.setTokens({
-            plane,
-            accessToken: "dev-access-token",
-            expiresIn: 3600,
-            slug: slug || "sunrise",
-          });
-          session.setUser({
-            id: "dev-user-id",
-            username: "principal",
-            email: "admin@sunrise.edu",
-            name: "Dr. K.P. Adhikari",
-            mustChangePassword: false,
-            roles: [{ code: "principal", name: "Principal", scopeType: "institution", scopeId: null }],
-            permissions: ["*"],
-            tenantSlug: slug || "sunrise",
-          });
-          setReady(true);
-          return;
-        }
-
         router.replace(
           plane === "school" && slug ? schoolPath(slug, "/login") : "/login",
         );
@@ -107,9 +84,14 @@ export function RequireAuth({
     }
   }, [ready, mustChangePassword, plane, slug, router]);
 
+  // Shown for the moment between "the code was accepted" and "the guarded page
+  // is ready". It says what is happening instead of flashing an empty screen.
   const spinner = (
-    <main className="grid min-h-screen place-items-center">
-      <LoaderCircle className="size-6 animate-spin text-muted-foreground" />
+    <main className="grid min-h-screen place-items-center bg-background">
+      <div className="flex flex-col items-center gap-3">
+        <LoaderCircle className="size-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Signing you in…</p>
+      </div>
     </main>
   );
 
