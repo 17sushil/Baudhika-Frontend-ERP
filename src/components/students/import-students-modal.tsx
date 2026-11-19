@@ -44,6 +44,10 @@ type ParsedRow = {
   email: string;
   municipality: string;
   district: string;
+  birthPlace: string;
+  motherTongue: string;
+  nationality: string;
+  remarks: string;
   specialNeeds: boolean;
   errors: string[];
 };
@@ -80,7 +84,7 @@ function toDateStr(v: unknown): string {
 
 function parseRows(sheet: XLSX.WorkSheet): ParsedRow[] {
   const raw = XLSX.utils.sheet_to_json<RawRow>(sheet, { defval: "" });
-  return raw.map((r: RawRow, i: number) => {
+  return raw.map((r, i) => {
     const row: RawRow = {};
     for (const [k, v] of Object.entries(r)) row[normKey(k)] = v;
     const get = (k: string) => toStr(row[k]);
@@ -102,6 +106,10 @@ function parseRows(sheet: XLSX.WorkSheet): ParsedRow[] {
       email: get("email").toLowerCase(),
       municipality: get("municipality"),
       district: get("district"),
+      birthPlace: get("birth_place"),
+      motherTongue: get("mother_tongue"),
+      nationality: get("nationality"),
+      remarks: get("remarks"),
       specialNeeds: ["yes", "true", "1"].includes(get("has_special_needs").toLowerCase()),
       errors: [],
     };
@@ -120,6 +128,7 @@ function validateRow(
     e.push("admission_date must be a real date written as YYYY-MM-DD");
   else if (row.admissionDate > new Date().toISOString().slice(0, 10))
     e.push("admission_date cannot be in the future");
+  if (!row.dob) e.push("date_of_birth is required for a student");
   if (row.dob.startsWith("INVALID")) e.push("date_of_birth must be YYYY-MM-DD");
   if (row.dob && !row.dob.startsWith("INVALID") && row.dob > new Date().toISOString().slice(0, 10))
     e.push("date_of_birth cannot be in the future");
@@ -231,6 +240,9 @@ export function ImportStudentsModal({
             gender: row.gender as CreateStudentInput["person"]["gender"],
             dob: row.dob || undefined,
             bloodGroup: row.bloodGroup || undefined,
+            birthPlace: row.birthPlace || undefined,
+            motherTongue: row.motherTongue || undefined,
+            nationality: row.nationality || undefined,
             contacts: [
               ...(row.phone ? [{ type: "phone", value: row.phone, isPrimary: true }] : []),
               ...(row.email ? [{ type: "email", value: row.email, isPrimary: !row.phone }] : []),
@@ -253,6 +265,7 @@ export function ImportStudentsModal({
           previousSchoolName: row.previousSchoolName || undefined,
           previousTcNo: row.previousTcNo || undefined,
           hasSpecialNeeds: row.specialNeeds,
+          remarks: row.remarks || undefined,
         };
         const name = `${row.firstName} ${row.lastName}`.trim();
         try {

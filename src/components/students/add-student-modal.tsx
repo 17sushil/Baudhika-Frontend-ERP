@@ -7,6 +7,7 @@ import { createStudent, listCampuses } from "@/lib/api/school";
 import type { AdmissionType } from "@/lib/api/types";
 import { toast } from "sonner";
 import { cn } from "cn";
+import { useHasPermission } from "@/store/session-store";
 
 interface AddStudentModalProps {
   open: boolean;
@@ -27,10 +28,18 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
 
   // Step 1: person
   const [firstName, setFirstName] = React.useState("");
+  const [middleName, setMiddleName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [gender, setGender] = React.useState<"male" | "female" | "other">("male");
   const [dob, setDob] = React.useState("");
   const [bloodGroup, setBloodGroup] = React.useState("");
+  const [birthPlace, setBirthPlace] = React.useState("");
+  const [motherTongue, setMotherTongue] = React.useState("");
+  const [nationality, setNationality] = React.useState("");
+  // SENSITIVE: the server only accepts these with person.sensitive.read.
+  const [nationalId, setNationalId] = React.useState("");
+  const [religion, setReligion] = React.useState("");
+  const [ethnicity, setEthnicity] = React.useState("");
 
   // Step 2: enrolment
   const [campusId, setCampusId] = React.useState("");
@@ -38,18 +47,21 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
   const [admissionType, setAdmissionType] = React.useState<AdmissionType>("new");
   const [emisId, setEmisId] = React.useState("");
   const [hasSpecialNeeds, setHasSpecialNeeds] = React.useState(false);
+  const [remarks, setRemarks] = React.useState("");
   const [previousSchoolName, setPreviousSchoolName] = React.useState("");
   const [previousTcNo, setPreviousTcNo] = React.useState("");
 
   // Step 3: contacts & address
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [addressType, setAddressType] = React.useState<"current" | "permanent" | "work">("current");
   const [line1, setLine1] = React.useState("");
   const [ward, setWard] = React.useState("");
   const [municipality, setMunicipality] = React.useState("");
   const [district, setDistrict] = React.useState("");
 
   const campuses = useQuery({ queryKey: ["campuses"], queryFn: listCampuses, retry: false });
+  const canWriteSensitive = useHasPermission("person.sensitive.read");
 
   /**
    * Put every field back to its first-day state. The modal closes on success,
@@ -59,19 +71,28 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
   const resetForm = React.useCallback(() => {
     setCurrentStep(1);
     setFirstName("");
+    setMiddleName("");
     setLastName("");
     setGender("male");
     setDob("");
     setBloodGroup("");
+    setBirthPlace("");
+    setMotherTongue("");
+    setNationality("");
+    setNationalId("");
+    setReligion("");
+    setEthnicity("");
     setCampusId("");
     setAdmissionDate("");
     setAdmissionType("new");
     setEmisId("");
     setHasSpecialNeeds(false);
+    setRemarks("");
     setPreviousSchoolName("");
     setPreviousTcNo("");
     setPhone("");
     setEmail("");
+    setAddressType("current");
     setLine1("");
     setWard("");
     setMunicipality("");
@@ -94,6 +115,16 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
   const validateStep = (step: number): boolean => {
     if (step === 1 && !firstName.trim()) {
       toast.error("Step 1 - first name is required.");
+      return false;
+    }
+    if (step === 1 && !dob) {
+      // The server refuses a student without a date of birth (government
+      // reports need it), so catch it here instead of failing the whole form.
+      toast.error("Step 1 - date of birth is required for a student.");
+      return false;
+    }
+    if (step === 1 && dob > new Date().toISOString().slice(0, 10)) {
+      toast.error("Step 1 - date of birth cannot be in the future.");
       return false;
     }
     if (step === 2) {
@@ -151,10 +182,22 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
     createMutation.mutate({
       person: {
         firstName: firstName.trim(),
+        middleName: middleName.trim() || null,
         lastName: lastName.trim() || null,
         gender,
         dob: dob || null,
         bloodGroup: bloodGroup || null,
+        birthPlace: birthPlace.trim() || null,
+        motherTongue: motherTongue.trim() || null,
+        nationality: nationality.trim() || null,
+        // Only when the account may write sensitive person data.
+        ...(canWriteSensitive
+          ? {
+              nationalId: nationalId.trim() || null,
+              religion: religion.trim() || null,
+              ethnicity: ethnicity.trim() || null,
+            }
+          : {}),
         ...(phone || email
           ? {
               contacts: [
@@ -167,7 +210,8 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
           ? {
               addresses: [
                 {
-                  type: "postal",
+                  // Must match the server enum: current | permanent | work.
+                  type: addressType,
                   line1: line1 || null,
                   ward: ward || null,
                   municipality: municipality || null,
@@ -183,6 +227,7 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
       admissionType,
       ...(emisId ? { emisId } : {}),
       hasSpecialNeeds,
+      remarks: remarks.trim() || null,
       ...(admissionType === "transfer_in"
         ? { previousSchoolName: previousSchoolName.trim(), previousTcNo: previousTcNo.trim() }
         : {}),
@@ -256,6 +301,10 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                 <input className={input} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="e.g. Aarav" />
               </div>
               <div>
+                <label className={label}>Middle name</label>
+                <input className={input} value={middleName} onChange={(e) => setMiddleName(e.target.value)} placeholder="optional" />
+              </div>
+              <div>
                 <label className={label}>Last name</label>
                 <input className={input} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="e.g. Sharma" />
               </div>
@@ -268,10 +317,10 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                 </select>
               </div>
               <div>
-                <label className={label}>Date of birth</label>
+                <label className={label}>Date of birth *</label>
                 <input type="date" className={input} value={dob} onChange={(e) => setDob(e.target.value)} />
               </div>
-              <div className="col-span-2">
+              <div>
                 <label className={label}>Blood group</label>
                 <select className={input} value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)}>
                   <option value="">Not recorded</option>
@@ -280,6 +329,40 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                   ))}
                 </select>
               </div>
+              <div>
+                <label className={label}>Birth place</label>
+                <input className={input} value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)} placeholder="e.g. Kathmandu" />
+              </div>
+              <div>
+                <label className={label}>Mother tongue</label>
+                <input className={input} value={motherTongue} onChange={(e) => setMotherTongue(e.target.value)} placeholder="e.g. Nepali" />
+              </div>
+              <div>
+                <label className={label}>Nationality</label>
+                <input className={input} value={nationality} onChange={(e) => setNationality(e.target.value)} placeholder="e.g. Nepali" />
+              </div>
+              {canWriteSensitive && (
+                <>
+                  <div>
+                    <label className={label}>National ID</label>
+                    <input className={input} value={nationalId} onChange={(e) => setNationalId(e.target.value)} placeholder="if issued" />
+                  </div>
+                  <div>
+                    <label className={label}>Religion</label>
+                    <input className={input} value={religion} onChange={(e) => setReligion(e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className={label}>Ethnicity</label>
+                    <input className={input} value={ethnicity} onChange={(e) => setEthnicity(e.target.value)} />
+                  </div>
+                </>
+              )}
+              {!canWriteSensitive && (
+                <p className="col-span-2 text-xs text-slate-400">
+                  National ID, religion and ethnicity are hidden: saving them needs
+                  the person.sensitive.read permission.
+                </p>
+              )}
             </div>
           )}
 
@@ -322,6 +405,15 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                   This student has special needs
                 </label>
               </div>
+              <div className="col-span-2">
+                <label className={label}>Remarks</label>
+                <textarea
+                  className={cn(input, "min-h-16")}
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="Anything the office should know about this admission"
+                />
+              </div>
               {admissionType === "transfer_in" && (
                 <>
                   <div>
@@ -346,6 +438,18 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
               <div>
                 <label className={label}>Contact email</label>
                 <input className={input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="parent@example.com" />
+              </div>
+              <div>
+                <label className={label}>Address type</label>
+                <select
+                  className={input}
+                  value={addressType}
+                  onChange={(e) => setAddressType(e.target.value as typeof addressType)}
+                >
+                  <option value="current">Current</option>
+                  <option value="permanent">Permanent</option>
+                  <option value="work">Work</option>
+                </select>
               </div>
               <div className="col-span-2">
                 <label className={label}>Street / Tole</label>

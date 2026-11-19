@@ -374,9 +374,17 @@ export type CreateStudentInput = {
     gender: "male" | "female" | "other";
     dob?: string | null;
     bloodGroup?: string | null;
+    birthPlace?: string | null;
+    motherTongue?: string | null;
+    nationality?: string | null;
+    /** SENSITIVE: the server only accepts these with person.sensitive.read. */
+    nationalId?: string | null;
+    religion?: string | null;
+    ethnicity?: string | null;
     contacts?: Array<{ type: string; value: string; isPrimary?: boolean }>;
     addresses?: Array<{
-      type: string;
+      /** Must match the server enum: current | permanent | work. */
+      type: "current" | "permanent" | "work";
       line1?: string | null;
       ward?: string | null;
       municipality?: string | null;

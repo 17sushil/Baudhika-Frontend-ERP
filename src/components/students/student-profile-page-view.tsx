@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   ArrowLeft,
@@ -35,6 +36,8 @@ import { cn } from "cn";
 interface StudentProfilePageViewProps {
   studentId: string;
   onBack: () => void;
+  /** Where the "Student directory" crumb and the back button belong. */
+  directoryHref: string;
 }
 
 type TabType =
@@ -116,6 +119,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 export function StudentProfilePageView({
   studentId,
   onBack,
+  directoryHref,
 }: StudentProfilePageViewProps) {
   const [activeTab, setActiveTab] = React.useState<TabType>("personal");
   const [idCardOpen, setIdCardOpen] = React.useState(false);
@@ -226,7 +230,12 @@ export function StudentProfilePageView({
             <span>Back to directory</span>
           </button>
           <span className="text-slate-300">/</span>
-          <span className="text-xs text-slate-500">Student directory</span>
+          <Link
+            href={directoryHref}
+            className="rounded text-[13px] text-slate-500 transition-colors hover:text-[#2570D3] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2570D3]"
+          >
+            Student directory
+          </Link>
           <span className="text-slate-300">/</span>
           <span className="text-xs font-semibold text-[#2570D3]">
             {person.displayName}
@@ -286,6 +295,16 @@ export function StudentProfilePageView({
                     {student.campus.name}
                   </span>
                 )}
+                {student.emisId && (
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-slate-600">
+                    EMIS {student.emisId}
+                  </span>
+                )}
+                {student.hasSpecialNeeds && (
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+                    special needs
+                  </span>
+                )}
               </div>
             </div>
             <div className="space-y-2 text-sm">
@@ -325,6 +344,7 @@ export function StudentProfilePageView({
 
       {/* PERSONAL */}
       {activeTab === "personal" && (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7 rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs space-y-4">
             <h3 className="font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
@@ -444,6 +464,41 @@ export function StudentProfilePageView({
             </div>
           </div>
         </div>
+
+        {/* Admission record: everything the student row itself stores, so a
+            profile never hides a field that was captured at admission. */}
+        <div className="rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs">
+          <h3 className="flex items-center gap-2 font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
+            <GraduationCap className="h-4 w-4 text-[#2570D3]" />
+            Admission record
+          </h3>
+          <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+            <Row label="Admission number" value={student.admissionNo} />
+            <Row label="Admission date" value={student.admissionDate} />
+            <Row label="Admission type" value={student.admissionType.replace("_", " ")} />
+            <Row label="Status" value={student.status.replace("_", " ")} />
+            <Row label="Campus" value={student.campus ? `${student.campus.name} (${student.campus.code})` : null} />
+            <Row label="EMIS id" value={student.emisId} />
+            <Row label="Previous school" value={student.previousSchoolName} />
+            <Row label="Previous class" value={student.previousSchoolClass} />
+            <Row label="Transfer certificate" value={student.previousTcNo} />
+            <Row label="Special needs" value={student.hasSpecialNeeds ? "Yes" : "No"} />
+            <Row label="Leaving date" value={student.leavingDate} />
+            <Row label="Leaving reason" value={student.leavingReason} />
+            <Row label="TC issued no" value={student.tcIssuedNo} />
+            <Row label="Record created" value={new Date(student.createdAt).toLocaleString()} />
+            <Row label="Last updated" value={new Date(student.updatedAt).toLocaleString()} />
+            <div className="sm:col-span-2">
+              <Row label="Remarks" value={student.remarks} />
+            </div>
+          </div>
+          <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
+            These are the admission fields the server stores. Anything showing a
+            dash was left empty when the student was created - it was never
+            collected, not lost.
+          </p>
+        </div>
+        </>
       )}
 
       {/* ACADEMIC */}

@@ -29,6 +29,7 @@ export default function TenantStudentProfilePage() {
       <StudentProfilePageView
         studentId={params.studentId}
         onBack={() => router.push(directoryHref)}
+        directoryHref={directoryHref}
       />
     </div>
   );
