@@ -17,6 +17,24 @@ interface AddStudentModalProps {
 
 const BLOOD_GROUPS = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
 
+/** One line of the review panel: always shows the field, never invents a value. */
+function SummaryItem({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-slate-400">{label}</dt>
+      <dd
+        className={cn(
+          "truncate font-semibold",
+          value ? "text-slate-900" : "font-normal text-slate-400",
+        )}
+        title={value ?? undefined}
+      >
+        {value || "not given"}
+      </dd>
+    </div>
+  );
+}
+
 /**
  * Ritik's multi-step admit wizard, rewired to POST /students. Steps map to
  * what the contract actually accepts: person, enrolment, contacts/address.
@@ -233,6 +251,16 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
         : {}),
     });
   };
+
+  // Everything the review step prints is derived from what is actually in the
+  // form right now - no placeholder contact, no sample campus.
+  const fullName = [firstName, middleName, lastName].map((p) => p.trim()).filter(Boolean).join(" ");
+  const campusName = campuses.data?.items.find((c) => c.id === campusId)?.name ?? null;
+  const addressLine =
+    [line1, ward && `ward ${ward}`, municipality, district].filter(Boolean).join(", ") || null;
+  const sensitiveLine = canWriteSensitive
+    ? [nationalId && `ID ${nationalId}`, religion, ethnicity].filter(Boolean).join(" · ") || null
+    : null;
 
   const STEPS = [
     { num: 1, title: "Personal" },
@@ -478,28 +506,46 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
 
           {currentStep === 4 && (
             <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/60 space-y-3">
-              <p className="font-semibold text-slate-900">Please verify the new enrollment:</p>
-              <div className="grid grid-cols-2 gap-2 text-slate-700">
-                <div>
-                  <span className="text-slate-400">Student:</span>
-                  <p className="font-semibold">{firstName} {lastName}</p>
-                </div>
-                <div>
-                  <span className="text-slate-400">Admission:</span>
-                  <p className="font-semibold">
-                    {admissionDate} • {admissionType.replace("_", " ")}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-slate-400">Contact:</span>
-                  <p className="font-semibold">{phone || email || "—"}</p>
-                </div>
-                <div>
-                  <span className="text-slate-400">Campus:</span>
-                  <p className="font-semibold">
-                    {campuses.data?.items.find((c) => c.id === campusId)?.name ?? "Unassigned"}
-                  </p>
-                </div>
+              <p className="font-semibold text-slate-900">Please check the new admission</p>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Person</p>
+                <dl className="mt-1.5 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                  <SummaryItem label="Full name" value={fullName || null} />
+                  <SummaryItem label="Gender" value={gender} />
+                  <SummaryItem label="Date of birth" value={dob || null} />
+                  <SummaryItem label="Blood group" value={bloodGroup || null} />
+                  <SummaryItem label="Birth place" value={birthPlace || null} />
+                  <SummaryItem label="Mother tongue" value={motherTongue || null} />
+                  <SummaryItem label="Nationality" value={nationality || null} />
+                  {canWriteSensitive && (
+                    <SummaryItem label="Sensitive details" value={sensitiveLine} />
+                  )}
+                  <SummaryItem label="Phone" value={phone || null} />
+                  <SummaryItem label="Email" value={email || null} />
+                  <div className="sm:col-span-2">
+                    <SummaryItem label={`Address (${addressType})`} value={addressLine} />
+                  </div>
+                </dl>
+              </div>
+
+              <div className="border-t border-slate-200 pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Admission</p>
+                <dl className="mt-1.5 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                  <SummaryItem label="Admission date" value={admissionDate || null} />
+                  <SummaryItem label="Admission type" value={admissionType.replace("_", " ")} />
+                  <SummaryItem label="Campus" value={campusName} />
+                  <SummaryItem label="EMIS id" value={emisId || null} />
+                  <SummaryItem label="Special needs" value={hasSpecialNeeds ? "Yes" : "No"} />
+                  {admissionType === "transfer_in" && (
+                    <>
+                      <SummaryItem label="Previous school" value={previousSchoolName || null} />
+                      <SummaryItem label="Previous TC number" value={previousTcNo || null} />
+                    </>
+                  )}
+                  <div className="sm:col-span-2">
+                    <SummaryItem label="Remarks" value={remarks || null} />
+                  </div>
+                </dl>
               </div>
               <p className="text-xs text-slate-500 pt-2 border-t border-slate-200">
                 The server generates the admission number and the record starts as
