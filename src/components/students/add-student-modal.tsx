@@ -51,54 +51,99 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
 
   const campuses = useQuery({ queryKey: ["campuses"], queryFn: listCampuses, retry: false });
 
+  /**
+   * Put every field back to its first-day state. The modal closes on success,
+   * but this component stays mounted with open={false}, so without this the
+   * next admitted student would start with the previous child's details.
+   */
+  const resetForm = React.useCallback(() => {
+    setCurrentStep(1);
+    setFirstName("");
+    setLastName("");
+    setGender("male");
+    setDob("");
+    setBloodGroup("");
+    setCampusId("");
+    setAdmissionDate("");
+    setAdmissionType("new");
+    setEmisId("");
+    setHasSpecialNeeds(false);
+    setPreviousSchoolName("");
+    setPreviousTcNo("");
+    setPhone("");
+    setEmail("");
+    setLine1("");
+    setWard("");
+    setMunicipality("");
+    setDistrict("");
+  }, []);
+
   const createMutation = useMutation({
     mutationFn: createStudent,
     onSuccess: (created) => {
       toast.success(`${created.person.displayName} admitted as ${created.admissionNo} (applicant).`);
       onStudentCreated();
+      resetForm();
       onClose();
-      setCurrentStep(1);
     },
     onError: (error: Error) => toast.error(error.message || "Admission failed - check the fields."),
   });
 
   if (!open) return null;
 
-  const validateStep = (): boolean => {
-    if (currentStep === 1 && !firstName.trim()) {
-      toast.error("First name is required.");
+  const validateStep = (step: number): boolean => {
+    if (step === 1 && !firstName.trim()) {
+      toast.error("Step 1 - first name is required.");
       return false;
     }
-    if (currentStep === 2) {
+    if (step === 2) {
       if (!admissionDate) {
-        toast.error("Admission date is required.");
+        toast.error("Step 2 - admission date is required.");
         return false;
       }
       if (emisId && !/^[0-9A-Za-z-]{1,30}$/.test(emisId)) {
-        toast.error("EMIS id: max 30 characters of letters, digits and dashes.");
+        toast.error("Step 2 - EMIS id: max 30 characters of letters, digits and dashes.");
         return false;
       }
       if (admissionType === "transfer_in" && (!previousSchoolName.trim() || !previousTcNo.trim())) {
-        toast.error("Transfer-in needs the previous school name and TC number.");
+        toast.error("Step 2 - transfer-in needs the previous school name and TC number.");
         return false;
       }
     }
-    if (currentStep === 3) {
+    if (step === 3) {
       if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-        toast.error("That email does not look valid.");
+        toast.error("Step 3 - that email does not look valid.");
         return false;
       }
       if (phone && !/^\+?\d{7,15}$/.test(phone)) {
-        toast.error("Phone: 7-15 digits, optional leading +.");
+        toast.error("Step 3 - phone: 7-15 digits, optional leading +.");
         return false;
       }
     }
     return true;
   };
 
+  /**
+   * Jumping between steps by clicking the numbered chips.
+   * Backwards is always free - you are allowed to correct anything you typed.
+   * Forwards has to pass the same checks the "Next step" button runs, one step
+   * at a time, so nobody can click straight to Confirm with an empty name.
+   */
+  const goToStep = (target: number) => {
+    if (target === currentStep || createMutation.isPending) return;
+    if (target < currentStep) {
+      setCurrentStep(target);
+      return;
+    }
+    for (let step = currentStep; step < target; step += 1) {
+      if (!validateStep(step)) return;
+    }
+    setCurrentStep(target);
+  };
+
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateStep()) return;
+    if (!validateStep(currentStep)) return;
     if (currentStep < 4) {
       setCurrentStep((s) => s + 1);
       return;
@@ -151,8 +196,8 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
     { num: 4, title: "Confirm" },
   ];
 
-  const label = "block font-medium text-slate-700 mb-1";
-  const input = "w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-hidden focus:border-[#2570D3]";
+  const label = "block text-[13px] font-medium text-slate-700 mb-1";
+  const input = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-hidden focus:border-[#2570D3]";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
@@ -160,35 +205,50 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
         <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <UserPlus className="h-4 w-4 text-[#2570D3]" />
-            <h3 className="font-semibold text-sm text-slate-900">Admit a new student</h3>
+            <h3 className="font-semibold text-base text-slate-900">Admit a new student</h3>
           </div>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Step indicator */}
+        {/* Step indicator - every chip is clickable (keyboard included) */}
         <div className="flex items-center gap-2 py-4">
-          {STEPS.map((step, i) => (
-            <React.Fragment key={step.num}>
-              <div
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold",
-                  currentStep === step.num
-                    ? "bg-[#2570D3] text-white"
-                    : currentStep > step.num
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-slate-100 text-slate-500"
-                )}
-              >
-                {step.num}. {step.title}
-              </div>
-              {i < STEPS.length - 1 && <div className="h-px flex-1 bg-slate-200" />}
-            </React.Fragment>
-          ))}
+          {STEPS.map((step, i) => {
+            const isCurrent = currentStep === step.num;
+            const isDone = currentStep > step.num;
+            return (
+              <React.Fragment key={step.num}>
+                <button
+                  type="button"
+                  onClick={() => goToStep(step.num)}
+                  aria-current={isCurrent ? "step" : undefined}
+                  aria-label={`Step ${step.num}: ${step.title}`}
+                  title={
+                    isCurrent
+                      ? `You are on step ${step.num}`
+                      : `Go to step ${step.num}: ${step.title}`
+                  }
+                  className={cn(
+                    "relative overflow-hidden flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all duration-200 cursor-pointer",
+                    "before:absolute before:inset-0 before:-translate-x-full before:bg-white/25 before:transition-transform before:duration-500 hover:before:translate-x-full",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2570D3]",
+                    isCurrent
+                      ? "bg-[#2570D3] text-white shadow-xs cursor-default"
+                      : isDone
+                        ? "bg-emerald-50 text-emerald-700 hover:-translate-y-0.5 hover:bg-emerald-100"
+                        : "bg-slate-100 text-slate-500 hover:-translate-y-0.5 hover:bg-slate-200 hover:text-slate-700"
+                  )}
+                >
+                  {step.num}. {step.title}
+                </button>
+                {i < STEPS.length - 1 && <div className="h-px flex-1 bg-slate-200" />}
+              </React.Fragment>
+            );
+          })}
         </div>
 
-        <form onSubmit={handleNext} className="mt-2 space-y-4 text-xs">
+        <form onSubmit={handleNext} className="mt-2 space-y-4 text-sm">
           {currentStep === 1 && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -303,7 +363,7 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                 <label className={label}>District</label>
                 <input className={input} value={district} onChange={(e) => setDistrict(e.target.value)} />
               </div>
-              <p className="col-span-2 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-[11px] text-amber-800">
+              <p className="col-span-2 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
                 <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 Parents and guardians are linked to the student after admission,
                 from the student&apos;s profile page. The contacts in this step belong
@@ -337,7 +397,7 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                   </p>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-200">
+              <p className="text-xs text-slate-500 pt-2 border-t border-slate-200">
                 The server generates the admission number and the record starts as
                 &quot;applicant&quot;. Activating a student is a separate status change once
                 guardians are linked.
@@ -352,7 +412,7 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                 <button
                   type="button"
                   onClick={() => setCurrentStep((s) => s - 1)}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 transition-colors"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                   <span>Back</span>
@@ -364,14 +424,14 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
+                className="rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#1C5BB0] transition-colors disabled:opacity-50"
+                className="relative overflow-hidden shadow-xs inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-4 py-1.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1C5BB0] before:absolute before:inset-0 before:-translate-x-full before:bg-white/20 before:transition-transform before:duration-500 hover:before:translate-x-full disabled:opacity-50"
               >
                 <span>{currentStep === 4 ? (createMutation.isPending ? "Admitting..." : "Confirm & enroll") : "Next step"}</span>
                 <ArrowRight className="h-3.5 w-3.5" />
