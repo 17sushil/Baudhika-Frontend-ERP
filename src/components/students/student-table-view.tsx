@@ -37,6 +37,7 @@ import { ImportStudentsModal } from "./import-students-modal";
 import { StudentIdCardModal } from "./student-id-card-modal";
 import { toast } from "sonner";
 import { cn } from "cn";
+import { initialsOfName } from "@/lib/initials";
 
 const ADMISSION_TYPES: AdmissionType[] = ["new", "transfer_in", "readmission"];
 
@@ -476,7 +477,7 @@ export function StudentTableView() {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-xl bg-[#12294D] text-xs font-bold text-white">
-                          {student.person.displayName.slice(0, 2).toUpperCase()}
+                          {initialsOfName(student.person.displayName)}
                         </div>
                         <div className="min-w-0">
                           <Link
@@ -563,7 +564,7 @@ export function StudentTableView() {
               >
                 <div className="flex min-w-0 items-center gap-3.5">
                   <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl bg-[#12294D] text-sm font-bold text-white transition-colors group-hover:bg-[#173B69]">
-                    {student.person.displayName.slice(0, 2).toUpperCase()}
+                    {initialsOfName(student.person.displayName)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-[15.5px] font-semibold leading-tight text-slate-900 transition-colors group-hover:text-[#2570D3]">

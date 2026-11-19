@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { X, ArrowRight, ArrowLeft, UserPlus, ShieldAlert } from "lucide-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { createStudent, listCampuses } from "@/lib/api/school";
-import type { AdmissionType } from "@/lib/api/types";
+import { X, ArrowRight, ArrowLeft, UserPlus, ShieldAlert, Users as UsersIcon } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createStudent, linkGuardian, listCampuses } from "@/lib/api/school";
+import type { AdmissionType, CreateStudentInput, GuardianRelation, StudentDetail } from "@/lib/api/types";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { useHasPermission } from "@/store/session-store";
@@ -16,6 +16,22 @@ interface AddStudentModalProps {
 }
 
 const BLOOD_GROUPS = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
+
+/** The server's guardian_relation enum, in the order an office reads it. */
+const GUARDIAN_RELATIONS: { value: GuardianRelation; label: string }[] = [
+  { value: "father", label: "Father" },
+  { value: "mother", label: "Mother" },
+  { value: "legal_guardian", label: "Legal guardian" },
+  { value: "grandparent", label: "Grandparent" },
+  { value: "uncle_aunt", label: "Uncle / Aunt" },
+  { value: "other", label: "Other" },
+];
+
+/** What came back from confirming the admission. */
+type AdmissionResult =
+  | { kind: "linked"; student: StudentDetail; guardianName: string; relation: string }
+  | { kind: "skipped"; student: StudentDetail }
+  | { kind: "failed"; student: StudentDetail; reason: string };
 
 /** One line of the review panel: always shows the field, never invents a value. */
 function SummaryItem({ label, value }: { label: string; value: string | null }) {
@@ -36,10 +52,16 @@ function SummaryItem({ label, value }: { label: string; value: string | null }) 
 }
 
 /**
- * Ritik's multi-step admit wizard, rewired to POST /students. Steps map to
- * what the contract actually accepts: person, enrolment, contacts/address.
- * The guardian step became an honest note - guardian linking is a separate
- * endpoint that does not exist yet, and students start as applicants.
+ * Ritik's multi-step admit wizard, rewired to the real admission contract.
+ *
+ * Two calls happen on confirm, in this order:
+ *   1. POST /students                     - the student (starts as applicant)
+ *   2. POST /students/{id}/guardians      - the parent typed in step 3
+ * They are separate on purpose: the server refuses guardians inside the
+ * student payload. If the student is created but the guardian link fails, the
+ * student still exists and the office is told exactly that, with the record
+ * number, so the parent can be linked from the profile instead of the whole
+ * admission being silently lost.
  */
 export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentModalProps) {
   const [currentStep, setCurrentStep] = React.useState(1);
@@ -69,6 +91,16 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
   const [previousSchoolName, setPreviousSchoolName] = React.useState("");
   const [previousTcNo, setPreviousTcNo] = React.useState("");
 
+  // Step 3: the parent / guardian, linked in the same confirm
+  const [guardianRelation, setGuardianRelation] = React.useState<GuardianRelation>("father");
+  const [guardianFirstName, setGuardianFirstName] = React.useState("");
+  const [guardianLastName, setGuardianLastName] = React.useState("");
+  const [guardianPhone, setGuardianPhone] = React.useState("");
+  const [guardianIsPrimary, setGuardianIsPrimary] = React.useState(true);
+  const [guardianEmergency, setGuardianEmergency] = React.useState(true);
+  const [guardianCanPickup, setGuardianCanPickup] = React.useState(true);
+  const [guardianCanPayFees, setGuardianCanPayFees] = React.useState(true);
+
   // Step 3: contacts & address
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -78,8 +110,15 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
   const [municipality, setMunicipality] = React.useState("");
   const [district, setDistrict] = React.useState("");
 
+  const queryClient = useQueryClient();
   const campuses = useQuery({ queryKey: ["campuses"], queryFn: listCampuses, retry: false });
   const canWriteSensitive = useHasPermission("person.sensitive.read");
+  // Linking needs student.update; creating the guardian record inline also
+  // needs guardian.create. Without both, the wizard admits the student and says
+  // so instead of firing a request the server would reject.
+  const canUpdateStudent = useHasPermission("student.update");
+  const canCreateGuardian = useHasPermission("guardian.create");
+  const canLinkGuardian = canUpdateStudent && canCreateGuardian;
 
   /**
    * Put every field back to its first-day state. The modal closes on success,
@@ -115,12 +154,86 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
     setWard("");
     setMunicipality("");
     setDistrict("");
+    setGuardianRelation("father");
+    setGuardianFirstName("");
+    setGuardianLastName("");
+    setGuardianPhone("");
+    setGuardianIsPrimary(true);
+    setGuardianEmergency(true);
+    setGuardianCanPickup(true);
+    setGuardianCanPayFees(true);
   }, []);
 
   const createMutation = useMutation({
-    mutationFn: createStudent,
-    onSuccess: (created) => {
-      toast.success(`${created.person.displayName} admitted as ${created.admissionNo} (applicant).`);
+    mutationFn: async (input: CreateStudentInput): Promise<AdmissionResult> => {
+      const student = await createStudent(input);
+
+      // No parent typed in: the student is admitted and stays linkable later.
+      if (!guardianFirstName.trim()) return { kind: "skipped", student };
+
+      if (!canLinkGuardian) {
+        return {
+          kind: "failed",
+          student,
+          reason: "this account cannot link guardians (needs student.update and guardian.create)",
+        };
+      }
+
+      const relationLabel =
+        GUARDIAN_RELATIONS.find((r) => r.value === guardianRelation)?.label ?? guardianRelation;
+
+      try {
+        await linkGuardian(student.id, {
+          relation: guardianRelation,
+          isPrimary: guardianIsPrimary,
+          isEmergencyContact: guardianEmergency,
+          canPickup: guardianCanPickup,
+          canPayFees: guardianCanPayFees,
+          guardian: {
+            person: {
+              firstName: guardianFirstName.trim(),
+              lastName: guardianLastName.trim() || null,
+              contacts: guardianPhone
+                ? [{ type: "phone", value: guardianPhone.replace(/[\s()-]/g, ""), isPrimary: true }]
+                : [],
+            },
+          },
+        });
+        return {
+          kind: "linked",
+          student,
+          guardianName: [guardianFirstName.trim(), guardianLastName.trim()].filter(Boolean).join(" "),
+          relation: relationLabel,
+        };
+      } catch (error) {
+        return {
+          kind: "failed",
+          student,
+          reason: error instanceof Error ? error.message : "the server refused the link",
+        };
+      }
+    },
+    onSuccess: (result) => {
+      // The directory, the KPI counters and this student's own page all read
+      // from these two keys, so one invalidation keeps them in step.
+      void queryClient.invalidateQueries({ queryKey: ["students"] });
+      void queryClient.invalidateQueries({ queryKey: ["student", result.student.id] });
+      void queryClient.invalidateQueries({ queryKey: ["student-status-history", result.student.id] });
+
+      if (result.kind === "linked") {
+        toast.success(
+          `${result.student.person.displayName} admitted as ${result.student.admissionNo}; ${result.guardianName} linked as ${result.relation}.`,
+        );
+      } else if (result.kind === "skipped") {
+        toast.success(
+          `${result.student.person.displayName} admitted as ${result.student.admissionNo} (applicant). No guardian was added.`,
+        );
+      } else {
+        toast.error(
+          `${result.student.admissionNo} was admitted, but the guardian was not linked: ${result.reason}. Add the guardian from the student's profile.`,
+        );
+      }
+
       onStudentCreated();
       resetForm();
       onClose();
@@ -167,6 +280,22 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
       if (phone && !/^\+?\d{7,15}$/.test(phone)) {
         toast.error("Step 3 - phone: 7-15 digits, optional leading +.");
         return false;
+      }
+      // The guardian block is optional, but a half-filled one is not: a name
+      // with no phone gives the office a guardian nobody can call.
+      const guardianStarted =
+        guardianFirstName.trim() !== "" ||
+        guardianLastName.trim() !== "" ||
+        guardianPhone.trim() !== "";
+      if (guardianStarted) {
+        if (!guardianFirstName.trim()) {
+          toast.error("Step 3 - the guardian needs a first name.");
+          return false;
+        }
+        if (!/^\+?\d{7,15}$/.test(guardianPhone.trim().replace(/[\s()-]/g, ""))) {
+          toast.error("Step 3 - the guardian needs a phone: 7-15 digits, optional leading +.");
+          return false;
+        }
       }
     }
     return true;
@@ -265,7 +394,7 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
   const STEPS = [
     { num: 1, title: "Personal" },
     { num: 2, title: "Admission" },
-    { num: 3, title: "Contact & Address" },
+    { num: 3, title: "Contact & Guardian" },
     { num: 4, title: "Confirm" },
   ];
 
@@ -495,12 +624,83 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                 <label className={label}>District</label>
                 <input className={input} value={district} onChange={(e) => setDistrict(e.target.value)} />
               </div>
-              <p className="col-span-2 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-                <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Parents and guardians are linked to the student after admission,
-                from the student&apos;s profile page. The contacts in this step belong
-                to the student only.
-              </p>
+              <div className="col-span-2 rounded-xl border border-[#DDE5F0] bg-[#F8FBFF] p-3.5">
+                <div className="mb-2.5 flex items-center gap-2">
+                  <UsersIcon className="h-4 w-4 text-[#2570D3]" />
+                  <p className="text-[13px] font-bold text-slate-800">Parent / guardian</p>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                    linked on confirm
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={label}>Relation</label>
+                    <select
+                      className={input}
+                      value={guardianRelation}
+                      onChange={(e) => setGuardianRelation(e.target.value as GuardianRelation)}
+                    >
+                      {GUARDIAN_RELATIONS.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={label}>Guardian phone *</label>
+                    <input
+                      className={input}
+                      value={guardianPhone}
+                      onChange={(e) => setGuardianPhone(e.target.value)}
+                      placeholder="+977 98..."
+                    />
+                  </div>
+                  <div>
+                    <label className={label}>Guardian first name</label>
+                    <input
+                      className={input}
+                      value={guardianFirstName}
+                      onChange={(e) => setGuardianFirstName(e.target.value)}
+                      placeholder="e.g. Ramesh"
+                    />
+                  </div>
+                  <div>
+                    <label className={label}>Guardian last name</label>
+                    <input
+                      className={input}
+                      value={guardianLastName}
+                      onChange={(e) => setGuardianLastName(e.target.value)}
+                      placeholder="e.g. Yadav"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+                  {[
+                    { on: guardianIsPrimary, set: setGuardianIsPrimary, text: "Primary guardian" },
+                    { on: guardianEmergency, set: setGuardianEmergency, text: "Emergency contact" },
+                    { on: guardianCanPickup, set: setGuardianCanPickup, text: "Can pick up" },
+                    { on: guardianCanPayFees, set: setGuardianCanPayFees, text: "Can pay fees" },
+                  ].map((flag) => (
+                    <label key={flag.text} className="flex cursor-pointer items-center gap-1.5 text-[12.5px] text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={flag.on}
+                        onChange={(e) => flag.set(e.target.checked)}
+                        className="h-3.5 w-3.5 cursor-pointer accent-[#2570D3]"
+                      />
+                      {flag.text}
+                    </label>
+                  ))}
+                </div>
+
+                <p className="mt-2.5 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-slate-500">
+                  <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  {canLinkGuardian
+                    ? "Saved as the guardian of this student, with the phone on the guardian's own record. Leave the name empty to admit the student alone."
+                    : "Your account cannot link guardians (needs student.update and guardian.create). The student will be admitted alone and the parent can be linked later."}
+                </p>
+              </div>
             </div>
           )}
 
@@ -547,10 +747,46 @@ export function AddStudentModal({ open, onClose, onStudentCreated }: AddStudentM
                   </div>
                 </dl>
               </div>
+              <div className="border-t border-slate-200 pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Guardian</p>
+                <dl className="mt-1.5 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                  <SummaryItem
+                    label="Name"
+                    value={
+                      [guardianFirstName, guardianLastName].filter(Boolean).join(" ") || null
+                    }
+                  />
+                  <SummaryItem
+                    label="Relation"
+                    value={
+                      guardianFirstName
+                        ? GUARDIAN_RELATIONS.find((r) => r.value === guardianRelation)?.label ?? null
+                        : null
+                    }
+                  />
+                  <SummaryItem label="Phone" value={guardianPhone || null} />
+                  <SummaryItem
+                    label="Permissions"
+                    value={
+                      guardianFirstName
+                        ? [
+                            guardianIsPrimary && "primary",
+                            guardianEmergency && "emergency",
+                            guardianCanPickup && "pickup",
+                            guardianCanPayFees && "fees",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "none"
+                        : null
+                    }
+                  />
+                </dl>
+              </div>
+
               <p className="text-xs text-slate-500 pt-2 border-t border-slate-200">
                 The server generates the admission number and the record starts as
-                &quot;applicant&quot;. Activating a student is a separate status change once
-                guardians are linked.
+                &quot;applicant&quot;. The guardian is linked straight after the student is
+                created; activation is a separate status change.
               </p>
             </div>
           )}

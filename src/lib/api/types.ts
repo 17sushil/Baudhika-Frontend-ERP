@@ -404,3 +404,142 @@ export type CreateStudentInput = {
   remarks?: string | null;
   hasSpecialNeeds?: boolean;
 };
+
+// --- guardians --------------------------------------------------------------
+// The relation list is the server's enum; anything outside it is rejected.
+export type GuardianRelation =
+  | "father"
+  | "mother"
+  | "legal_guardian"
+  | "grandparent"
+  | "uncle_aunt"
+  | "other";
+
+/** First word of the guardian's own details, when creating one inline. */
+export type GuardianPersonInput = {
+  firstName: string;
+  middleName?: string | null;
+  lastName?: string | null;
+  gender?: "male" | "female" | "other" | null;
+  contacts?: Array<{ type: string; value: string; isPrimary?: boolean }>;
+};
+
+/**
+ * POST /guardians body. Send exactly one of `personId` (reuse a person found
+ * with GET /persons/lookup) or `person` (create a new person).
+ */
+export type CreateGuardianInput = {
+  personId?: string;
+  person?: GuardianPersonInput;
+  qualification?: string | null;
+  occupation?: string | null;
+  employer?: string | null;
+  /** SENSITIVE: needs guardian.sensitive.read. */
+  annualIncome?: number | null;
+};
+
+/** POST /students/{id}/guardians - link, creating the guardian inline if needed. */
+export type LinkGuardianInput = {
+  guardianId?: string;
+  guardian?: CreateGuardianInput;
+  relation: GuardianRelation;
+  isPrimary?: boolean;
+  isEmergencyContact?: boolean;
+  livesWithStudent?: boolean;
+  canPickup?: boolean;
+  canViewResults?: boolean;
+  canPayFees?: boolean;
+  hasCustody?: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+};
+
+/** PATCH /students/{id}/guardians/{guardianId} - flags and validity only. */
+export type UpdateGuardianLinkInput = Partial<
+  Omit<LinkGuardianInput, "guardianId" | "guardian" | "relation">
+> & { relation?: GuardianRelation };
+
+export type GuardianChild = {
+  studentId: string;
+  admissionNo: string;
+  displayName: string;
+  status: StudentStatus;
+  relation: GuardianRelation;
+  isPrimary: boolean;
+};
+
+/** GET /guardians/{id} - the guardian plus every child in the caller's scope. */
+export type GuardianDetail = {
+  id: string;
+  personId: string;
+  qualification: string | null;
+  occupation: string | null;
+  employer: string | null;
+  annualIncome?: number | null;
+  createdAt: string;
+  updatedAt: string;
+  person: PersonDetail;
+  children: GuardianChild[];
+};
+
+export type GuardianListItem = Omit<GuardianDetail, "person" | "children"> & {
+  person: { id: string; displayName: string; primaryPhone: string | null };
+};
+
+export type GuardianListParams = {
+  page?: number;
+  limit?: number;
+  /** Name contains, or exact phone/email. */
+  search?: string;
+};
+
+/** POST /students/{id}/status - applicant -> active, or an exit status. */
+export type ChangeStudentStatusInput = {
+  status: StudentStatus;
+  reason?: string | null;
+  /** Required by the server for alumni, transferred_out and dropped. */
+  leavingDate?: string | null;
+  leavingReason?: string | null;
+  tcIssuedNo?: string | null;
+};
+
+// --- dashboard --------------------------------------------------------------
+
+export type CampusCount = {
+  campusId: string | null;
+  code: string | null;
+  name: string | null;
+  /** Enrolled students / current staff on this campus. */
+  current: number;
+  /** All records on this campus, including alumni and departed. */
+  total: number;
+};
+
+export type StudentKpis = {
+  enrolled: number;
+  applicants: number;
+  total: number;
+  byStatus: Record<string, number>;
+  byGender: Record<string, number>;
+  admissionsThisMonth: number;
+  admissionsThisYear: number;
+  byCampus: CampusCount[];
+};
+
+export type StaffKpis = {
+  current: number;
+  active: number;
+  onLeave: number;
+  total: number;
+  byType: Record<string, number>;
+  byCampus: CampusCount[];
+};
+
+/** GET /dashboard/kpis - each block appears only with its permission. */
+export type DashboardKpis = {
+  scope: "institution" | "campus";
+  campusIds: string[] | null;
+  generatedAt: string;
+  students?: StudentKpis;
+  staff?: StaffKpis;
+};

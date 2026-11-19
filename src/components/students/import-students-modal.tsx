@@ -10,14 +10,16 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
-import { createStudent, listCampuses } from "@/lib/api/school";
-import type { CreateStudentInput } from "@/lib/api/types";
+import { createStudent, linkGuardian, listCampuses } from "@/lib/api/school";
+import type { CreateStudentInput, GuardianRelation } from "@/lib/api/types";
 import { toast } from "sonner";
 import { cn } from "cn";
 
 const GENDERS = ["male", "female", "other"];
 const BLOOD = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const ADMIT_TYPES = ["new", "transfer_in", "readmission"];
+/** Must match the server's guardian_relation enum. */
+const RELATIONS = ["father", "mother", "legal_guardian", "grandparent", "uncle_aunt", "other"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const PHONE_RE = /^\+?[0-9]{7,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -49,6 +51,11 @@ type ParsedRow = {
   nationality: string;
   remarks: string;
   specialNeeds: boolean;
+  /** Guardian columns: all four empty means "admit the student alone". */
+  guardianFirstName: string;
+  guardianLastName: string;
+  guardianRelation: string;
+  guardianPhone: string;
   errors: string[];
 };
 
@@ -111,6 +118,10 @@ function parseRows(sheet: XLSX.WorkSheet): ParsedRow[] {
       nationality: get("nationality"),
       remarks: get("remarks"),
       specialNeeds: ["yes", "true", "1"].includes(get("has_special_needs").toLowerCase()),
+      guardianFirstName: get("guardian_first_name"),
+      guardianLastName: get("guardian_last_name"),
+      guardianRelation: (get("guardian_relation") || "father").toLowerCase(),
+      guardianPhone: get("guardian_phone").replace(/[\s()-]/g, ""),
       errors: [],
     };
   });
@@ -145,6 +156,18 @@ function validateRow(
   }
   if (row.phone && !PHONE_RE.test(row.phone)) e.push("phone must be 7-15 digits, optional leading +");
   if (row.email && !EMAIL_RE.test(row.email)) e.push("email looks invalid");
+
+  // Guardian: optional as a block, strict once started.
+  const guardianStarted = !!(row.guardianFirstName || row.guardianLastName || row.guardianPhone);
+  if (guardianStarted) {
+    if (!row.guardianFirstName) e.push("guardian_first_name is required when a guardian is given");
+    if (!row.guardianPhone)
+      e.push("guardian_phone is required when a guardian is given");
+    else if (!PHONE_RE.test(row.guardianPhone))
+      e.push("guardian_phone must be 7-15 digits, optional leading +");
+    if (!RELATIONS.includes(row.guardianRelation))
+      e.push("guardian_relation must be father, mother, legal_guardian, grandparent, uncle_aunt or other");
+  }
 }
 
 /**
@@ -270,8 +293,36 @@ export function ImportStudentsModal({
         const name = `${row.firstName} ${row.lastName}`.trim();
         try {
           const created = await createStudent(input);
+
+          // Second call, same row: link the parent typed into the guardian
+          // columns. A student is never rolled back because a parent failed -
+          // the row keeps its admission number and carries the reason instead.
+          let guardianNote = "";
+          if (row.guardianFirstName) {
+            try {
+              await linkGuardian(created.id, {
+                relation: row.guardianRelation as GuardianRelation,
+                isPrimary: true,
+                isEmergencyContact: true,
+                canPickup: true,
+                canPayFees: true,
+                guardian: {
+                  person: {
+                    firstName: row.guardianFirstName,
+                    lastName: row.guardianLastName || null,
+                    contacts: [{ type: "phone", value: row.guardianPhone, isPrimary: true }],
+                  },
+                },
+              });
+              guardianNote = ` + ${row.guardianFirstName} ${row.guardianRelation}`;
+            } catch (linkErr) {
+              const why = linkErr instanceof Error ? linkErr.message : "refused";
+              guardianNote = ` (guardian not linked: ${why})`;
+            }
+          }
+
           ok += 1;
-          collected.push({ n: row.n, name, ok: true, detail: created.admissionNo });
+          collected.push({ n: row.n, name, ok: true, detail: `${created.admissionNo}${guardianNote}` });
         } catch (err) {
           failed += 1;
           const msg = err instanceof Error ? err.message : "unknown error";
