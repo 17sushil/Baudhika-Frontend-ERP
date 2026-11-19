@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Search,
   Plus,
@@ -87,6 +88,7 @@ function SortHeader({
  * Rows are links: the profile is a real route, not inline state.
  */
 export function StudentTableView() {
+  const pathname = usePathname();
   const { tenant, slug } = useTenant();
   const queryClient = useQueryClient();
   const canCreate = useHasPermission("student.create");
@@ -366,80 +368,86 @@ export function StudentTableView() {
                   </td>
                 </tr>
               ) : (
-                rows.map((student) => (
-                  <tr
-                    key={student.id}
-                    className="hover:bg-slate-50/70 transition-colors"
-                    onMouseEnter={() => {
-                      void queryClient.prefetchQuery({
-                        queryKey: ["student", student.id],
-                        queryFn: () => getStudent(student.id),
-                      });
-                    }}
-                  >
-                    <td className="py-3 px-3">
-                      <Link
-                        href={`/t/${tenant.slug}/students/${student.id}`}
-                        className="flex items-center gap-2.5 group"
-                      >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#12294D] text-white text-xs font-semibold">
-                          {student.person.displayName.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-900 group-hover:text-[#2570D3] transition-colors">
-                            {student.person.displayName}
-                          </p>
-                          <p className="text-[11px] text-slate-400">
-                            {student.person.gender ?? "—"}
-                            {student.person.dob ? ` • b. ${student.person.dob}` : ""}
-                          </p>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className="text-slate-800">{student.campus?.name ?? "—"}</span>
-                      <p className="text-[11px] text-slate-400">{student.campus?.code ?? ""}</p>
-                    </td>
-                    <td className="py-3 px-3 font-mono text-[11px] text-slate-800">
-                      {student.admissionNo}
-                      <p className="text-slate-400">{student.emisId ?? "no EMIS yet"}</p>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className="text-slate-800">{student.admissionDate}</span>
-                      <p className="text-[11px] text-slate-400">
-                        {student.admissionType.replace("_", " ")}
-                      </p>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                          STATUS_BADGE[student.status]
-                        )}
-                      >
-                        {student.status.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                rows.map((student) => {
+                  const studentHref = tenant?.slug
+                    ? `/t/${tenant.slug}/students/${student.id}`
+                    : `/students/${student.id}`;
+
+                  return (
+                    <tr
+                      key={student.id}
+                      className="hover:bg-slate-50/70 transition-colors"
+                      onMouseEnter={() => {
+                        void queryClient.prefetchQuery({
+                          queryKey: ["student", student.id],
+                          queryFn: () => getStudent(student.id),
+                        });
+                      }}
+                    >
+                      <td className="py-3 px-3">
                         <Link
-                          href={`/t/${tenant.slug}/students/${student.id}`}
-                          className="rounded-md border border-slate-200 px-2 py-1 text-xs text-[#2570D3] font-medium hover:bg-[#2570D3] hover:text-white transition-colors"
+                          href={studentHref}
+                          className="flex items-center gap-2.5 group"
                         >
-                          Profile
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#12294D] text-white text-xs font-semibold">
+                            {student.person.displayName.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900 group-hover:text-[#2570D3] transition-colors">
+                              {student.person.displayName}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              {student.person.gender ?? "—"}
+                              {student.person.dob ? ` • b. ${student.person.dob}` : ""}
+                            </p>
+                          </div>
                         </Link>
-                        <button
-                          type="button"
-                          onClick={() => void openIdCard(student.id)}
-                          className="rounded-md border border-slate-200 p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-                          title="Print identity card"
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-slate-800">{student.campus?.name ?? "—"}</span>
+                        <p className="text-[11px] text-slate-400">{student.campus?.code ?? ""}</p>
+                      </td>
+                      <td className="py-3 px-3 font-mono text-[11px] text-slate-800">
+                        {student.admissionNo}
+                        <p className="text-slate-400">{student.emisId ?? "no EMIS yet"}</p>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-slate-800">{student.admissionDate}</span>
+                        <p className="text-[11px] text-slate-400">
+                          {student.admissionType.replace("_", " ")}
+                        </p>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                            STATUS_BADGE[student.status]
+                          )}
                         >
-                          <Printer className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {student.status.replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={studentHref}
+                            className="rounded-md border border-slate-200 px-2 py-1 text-xs text-[#2570D3] font-medium hover:bg-[#2570D3] hover:text-white transition-colors"
+                          >
+                            Profile
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => void openIdCard(student.id)}
+                            className="rounded-md border border-slate-200 p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                            title="Print identity card"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

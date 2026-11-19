@@ -80,7 +80,7 @@ function toDateStr(v: unknown): string {
 
 function parseRows(sheet: XLSX.WorkSheet): ParsedRow[] {
   const raw = XLSX.utils.sheet_to_json<RawRow>(sheet, { defval: "" });
-  return raw.map((r, i) => {
+  return raw.map((r: RawRow, i: number) => {
     const row: RawRow = {};
     for (const [k, v] of Object.entries(r)) row[normKey(k)] = v;
     const get = (k: string) => toStr(row[k]);

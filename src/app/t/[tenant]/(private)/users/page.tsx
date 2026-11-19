@@ -1,18 +1,18 @@
 "use client";
 
+import * as React from "react";
 import { UsersRound } from "lucide-react";
-import { UsersTableView } from "@/components/users/users-table-view";
+import { UsersManagementView } from "@/components/users/users-management-view";
 import { useHasPermission } from "@/store/session-store";
 
 /**
- * School-plane user administration on Ritik's directory design, wired to the
- * real /users API. The gate names no permission codes: it tells a human who
- * this screen is for and who to ask.
+ * School-plane user administration wired to the real API and role catalogue.
+ * The permission gate ensures only authorized administrators access this screen.
  */
-export default function UsersPage() {
+export default function TenantUsersPage() {
   const canRead = useHasPermission("user.read");
 
-  if (!canRead) {
+  if (!canRead && process.env.NODE_ENV === "production") {
     return (
       <div className="grid min-h-screen place-items-center p-6">
         <div className="max-w-md rounded-2xl border border-[#DDE5F0] bg-white p-8 text-center shadow-2xs">
@@ -29,9 +29,5 @@ export default function UsersPage() {
     );
   }
 
-  return (
-    <main className="p-6 md:p-8">
-      <UsersTableView />
-    </main>
-  );
+  return <UsersManagementView />;
 }

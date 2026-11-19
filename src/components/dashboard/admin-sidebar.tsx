@@ -16,6 +16,9 @@ import {
   ChevronLeft,
   ChevronRight,
   School,
+  Users,
+  Briefcase,
+  HeartHandshake,
   X,
   UsersRound,
 } from "lucide-react";
@@ -40,8 +43,10 @@ const NAV_MODULES: NavItem[] = [
   // Until then no role holds it and the item would disappear for everyone;
   // the in-page card explains the missing permission instead.
   { title: "Students", href: "/students", icon: GraduationCap },
-  { title: "Users", href: "/users", icon: UsersRound, permission: "user.read" },
+  { title: "Guardians", href: "/guardians", icon: HeartHandshake },
+  { title: "Staff", href: "/staff", icon: Briefcase },
   { title: "Academics", href: "/academics", icon: BookOpen },
+  { title: "Users", href: "/users", icon: UsersRound, permission: "user.read" },
   { title: "Attendance", href: "/attendance", icon: CalendarCheck },
   { title: "Exams", href: "/examinations", icon: FileSpreadsheet },
   { title: "Fees", href: "/finance", icon: WalletCards },
