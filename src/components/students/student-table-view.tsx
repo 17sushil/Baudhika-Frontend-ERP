@@ -379,7 +379,7 @@ export function StudentTableView() {
                   >
                     <td className="py-3 px-3">
                       <Link
-                        href={`/t/${tenant.slug}/students/${student.id}`}
+                        href={schoolPath(tenant.slug, `/students/${student.id}`)}
                         className="flex items-center gap-2.5 group"
                       >
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#12294D] text-white text-xs font-semibold">
@@ -423,7 +423,7 @@ export function StudentTableView() {
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link
-                          href={`/t/${tenant.slug}/students/${student.id}`}
+                          href={schoolPath(tenant.slug, `/students/${student.id}`)}
                           className="rounded-md border border-slate-200 px-2 py-1 text-xs text-[#2570D3] font-medium hover:bg-[#2570D3] hover:text-white transition-colors"
                         >
                           Profile

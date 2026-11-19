@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import {
+  AlertCircle,
   ArrowLeft,
+  RotateCcw,
   Printer,
   Edit3,
   Phone,
@@ -93,10 +95,15 @@ function DisabledStub({ label, icon: Icon, reason }: { label: string; icon: Reac
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  const empty = value === null || value === undefined || value === "";
   return (
-    <div className="flex items-baseline">
-      <span className="w-36 text-slate-400 font-medium">{label} :</span>
-      <span className="font-semibold text-slate-800">{value ?? "—"}</span>
+    <div className="flex items-baseline gap-2">
+      <span className="w-40 shrink-0 text-[13px] font-medium text-slate-400">
+        {label}
+      </span>
+      <span className="text-sm font-semibold text-slate-800">
+        {empty ? <span className="font-normal text-slate-300">—</span> : value}
+      </span>
     </div>
   );
 }
@@ -129,16 +136,64 @@ export function StudentProfilePageView({
     enabled: canReadHealth,
   });
 
+  // A skeleton in the shape of the record being loaded: the page does not jump
+  // when the data lands, and nobody stares at a blank screen.
   if (detail.isLoading) {
-    return <p className="py-16 text-center text-xs text-slate-400">Loading student record...</p>;
+    return (
+      <div className="space-y-6 pb-16" aria-busy="true" aria-label="Loading student record">
+        <div className="h-9 w-52 animate-pulse rounded-lg bg-slate-100" />
+        <div className="rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs">
+          <div className="flex flex-col items-start gap-6 md:flex-row">
+            <div className="h-28 w-28 shrink-0 animate-pulse rounded-2xl bg-slate-100" />
+            <div className="flex-1 space-y-3 pt-1">
+              <div className="h-6 w-48 animate-pulse rounded bg-slate-100" />
+              <div className="h-5 w-64 animate-pulse rounded bg-slate-100" />
+              <div className="h-4 w-40 animate-pulse rounded bg-slate-100" />
+              <div className="h-4 w-56 animate-pulse rounded bg-slate-100" />
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-9 w-28 animate-pulse rounded-xl bg-slate-100" />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+      </div>
+    );
   }
   if (detail.error || !detail.data) {
+    const reason =
+      detail.error instanceof Error && detail.error.message
+        ? detail.error.message
+        : "The record could not be fetched.";
     return (
-      <div className="py-16 text-center">
-        <p className="text-xs text-[#D64545]">Could not load this student.</p>
-        <button type="button" onClick={onBack} className="mt-3 text-xs text-[#2570D3] underline">
-          Back to directory
-        </button>
+      <div className="mx-auto mt-10 max-w-md rounded-2xl border border-[#DDE5F0] bg-white p-8 text-center shadow-2xs">
+        <AlertCircle className="mx-auto h-8 w-8 text-[#D64545]" />
+        <h2 className="mt-3 text-base font-semibold text-slate-900">
+          We couldn&apos;t load this student
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">{reason}</p>
+        <p className="mt-1 text-xs text-slate-400">
+          The record may have been removed, or the connection dropped.
+        </p>
+        <div className="mt-5 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => void detail.refetch()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#2570D3] px-3.5 py-2 text-sm font-medium text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1C5BB0]"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Try again
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-lg border border-[#DDE5F0] bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-50"
+          >
+            Back to directory
+          </button>
+        </div>
       </div>
     );
   }
@@ -210,30 +265,30 @@ export function StudentProfilePageView({
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 {person.displayName}
               </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span
                   className={cn(
-                    "rounded-full border px-2 py-0.5 font-semibold",
+                    "rounded-full border px-2.5 py-1 font-semibold",
                     STATUS_BADGE[student.status]
                   )}
                 >
                   {student.status.replace("_", " ")}
                 </span>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-slate-700">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-slate-700">
                   {student.admissionNo}
                 </span>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-600">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600">
                   {student.admissionType.replace("_", " ")}
                 </span>
                 {student.campus && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-600">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600">
                     <Building2 className="h-3 w-3" />
                     {student.campus.name}
                   </span>
                 )}
               </div>
             </div>
-            <div className="space-y-1.5 text-xs">
+            <div className="space-y-2 text-sm">
               <Row label="Admitted on" value={student.admissionDate} />
               <Row
                 label="Guardian"
@@ -250,14 +305,14 @@ export function StudentProfilePageView({
       </div>
 
       {/* Pill Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-medium">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-sm font-medium" role="tablist">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "rounded-xl px-4 py-2 transition-colors cursor-pointer whitespace-nowrap",
+              "rounded-xl px-4 py-2.5 transition-all duration-200 cursor-pointer whitespace-nowrap",
               activeTab === tab.id
                 ? "bg-[#2570D3] text-white shadow-xs font-semibold"
                 : "bg-white border border-[#DDE5F0] text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -272,10 +327,10 @@ export function StudentProfilePageView({
       {activeTab === "personal" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7 rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs space-y-4">
-            <h3 className="font-bold text-sm text-slate-900 pb-3 border-b border-slate-100">
+            <h3 className="font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
               Personal Info
             </h3>
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-sm">
               <Row label="Gender" value={person.gender} />
               <Row label="Date of birth" value={person.dob} />
               <Row label="Blood group" value={person.bloodGroup} />
@@ -290,7 +345,7 @@ export function StudentProfilePageView({
                 </>
               )}
               {!canReadSensitive && (
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-slate-400">
                   National ID, religion and ethnicity need the person.sensitive.read permission.
                 </p>
               )}
@@ -307,11 +362,11 @@ export function StudentProfilePageView({
             </div>
 
             <div className="pt-4 border-t border-slate-100">
-              <h4 className="font-semibold text-xs text-slate-700 mb-2">Contacts</h4>
+              <h4 className="font-semibold text-[13px] text-slate-700 mb-2">Contacts</h4>
               {person.contacts.length === 0 ? (
-                <p className="text-[11px] text-slate-400">No contacts recorded.</p>
+                <p className="text-xs text-slate-400">No contacts recorded.</p>
               ) : (
-                <ul className="space-y-1.5 text-xs">
+                <ul className="space-y-2 text-sm">
                   {person.contacts.map((c) => (
                     <li key={c.id} className="flex items-center gap-2 text-slate-700">
                       {c.type === "email" ? (
@@ -322,7 +377,7 @@ export function StudentProfilePageView({
                       <span className="font-medium">{c.value}</span>
                       <span className="text-slate-400">({c.type})</span>
                       {c.isPrimary && (
-                        <span className="rounded-full bg-[#2570D3]/10 px-1.5 text-[10px] font-semibold text-[#2570D3]">
+                        <span className="rounded-full bg-[#2570D3]/10 px-1.5 text-[11px] font-semibold text-[#2570D3]">
                           primary
                         </span>
                       )}
@@ -335,24 +390,24 @@ export function StudentProfilePageView({
 
           <div className="lg:col-span-5 space-y-6">
             <div className="rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs">
-              <h3 className="font-bold text-sm text-slate-900 pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
                 Guardians
               </h3>
               {student.guardians.length === 0 ? (
-                <p className="pt-3 text-[11px] text-slate-400">
+                <p className="pt-3 text-xs text-slate-400">
                   No guardians linked yet. You will be able to link parents and
                   guardians from this page in a future update.
                 </p>
               ) : (
-                <ul className="pt-3 space-y-3 text-xs">
+                <ul className="pt-3 space-y-3 text-sm">
                   {student.guardians.map((g) => (
                     <li key={g.guardianId} className="rounded-xl border border-slate-100 p-3">
                       <p className="font-semibold text-slate-900">
                         {g.displayName}{" "}
                         <span className="font-normal text-slate-500">({g.relation})</span>
                       </p>
-                      <p className="text-slate-600 font-mono text-[11px]">{g.primaryPhone ?? "no phone"}</p>
-                      <div className="mt-1.5 flex flex-wrap gap-1 text-[10px]">
+                      <p className="text-slate-600 font-mono text-xs">{g.primaryPhone ?? "no phone"}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1 text-[11px]">
                         {g.isPrimary && <span className="rounded-full bg-[#2570D3]/10 px-1.5 py-0.5 font-semibold text-[#2570D3]">primary</span>}
                         {g.isEmergencyContact && <span className="rounded-full bg-rose-50 px-1.5 py-0.5 font-semibold text-rose-700">emergency</span>}
                         {g.canPickup && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-600">pickup</span>}
@@ -366,13 +421,13 @@ export function StudentProfilePageView({
             </div>
 
             <div className="rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs">
-              <h3 className="font-bold text-sm text-slate-900 pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
                 Addresses
               </h3>
               {person.addresses.length === 0 ? (
-                <p className="pt-3 text-[11px] text-slate-400">No address recorded.</p>
+                <p className="pt-3 text-xs text-slate-400">No address recorded.</p>
               ) : (
-                <ul className="pt-3 space-y-2 text-xs text-slate-700">
+                <ul className="pt-3 space-y-2 text-sm text-slate-700">
                   {person.addresses.map((a) => (
                     <li key={a.id} className="flex items-start gap-2">
                       <MapPin className="mt-0.5 h-3.5 w-3.5 text-slate-400" />
@@ -416,21 +471,21 @@ export function StudentProfilePageView({
       {/* HEALTH */}
       {activeTab === "health" && (
         <div className="rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs">
-          <h3 className="flex items-center gap-2 font-bold text-sm text-slate-900 pb-3 border-b border-slate-100">
+          <h3 className="flex items-center gap-2 font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
             <HeartPulse className="h-4 w-4 text-[#2570D3]" />
             Health record
           </h3>
           {!canReadHealth ? (
-            <p className="flex items-center gap-2 pt-4 text-xs text-slate-500">
+            <p className="flex items-center gap-2 pt-4 text-sm text-slate-500">
               <ShieldCheck className="h-4 w-4 text-slate-400" />
               Needs student.health.read. Every read of this panel is written to the audit log.
             </p>
           ) : health.isLoading ? (
-            <p className="pt-4 text-xs text-slate-400">Loading health record...</p>
+            <p className="pt-4 text-sm text-slate-400">Loading health record...</p>
           ) : health.error ? (
-            <p className="pt-4 text-xs text-[#D64545]">Could not load the health record.</p>
+            <p className="pt-4 text-sm text-[#D64545]">Could not load the health record.</p>
           ) : (
-            <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
               {(
                 [
                   ["Allergies", health.data?.allergies],
@@ -445,7 +500,7 @@ export function StudentProfilePageView({
               ).map(([label, value]) => (
                 <Row key={label} label={label} value={value} />
               ))}
-              <p className="sm:col-span-2 pt-2 text-[11px] text-slate-400">
+              <p className="sm:col-span-2 pt-2 text-xs text-slate-400">
                 {health.data?.updatedAt
                   ? `Last updated ${new Date(health.data.updatedAt).toLocaleString()} by ${
                       health.data.updatedBy ? `${health.data.updatedBy.slice(0, 8)}…` : "system"
@@ -481,19 +536,19 @@ export function StudentProfilePageView({
       {/* STATUS HISTORY */}
       {activeTab === "history" && (
         <div className="rounded-2xl border border-[#DDE5F0] bg-white p-6 shadow-2xs">
-          <h3 className="flex items-center gap-2 font-bold text-sm text-slate-900 pb-3 border-b border-slate-100">
+          <h3 className="flex items-center gap-2 font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
             <History className="h-4 w-4 text-[#2570D3]" />
             Status history
           </h3>
           {history.isLoading ? (
-            <p className="pt-4 text-xs text-slate-400">Loading timeline...</p>
+            <p className="pt-4 text-sm text-slate-400">Loading timeline...</p>
           ) : (history.data?.length ?? 0) === 0 ? (
-            <p className="pt-4 text-xs text-slate-400">No status changes recorded.</p>
+            <p className="pt-4 text-sm text-slate-400">No status changes recorded.</p>
           ) : (
-            <ol className="pt-4 space-y-3 text-xs">
+            <ol className="pt-4 space-y-3 text-sm">
               {history.data?.map((entry) => (
                 <li key={entry.id} className="flex items-baseline gap-3">
-                  <span className="w-36 shrink-0 font-mono text-[11px] text-slate-400">
+                  <span className="w-36 shrink-0 font-mono text-xs text-slate-400">
                     {new Date(entry.changedAt).toLocaleDateString()}
                   </span>
                   <span className="font-semibold text-slate-800">
